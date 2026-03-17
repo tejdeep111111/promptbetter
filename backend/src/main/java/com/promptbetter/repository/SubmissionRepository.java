@@ -1,4 +1,10 @@
 package com.promptbetter.repository;
 
-public class SubmissionRepository {
+import com.promptbetter.model.Submission;
+import org.springframework.data.jpa.repository.JpaRepository;
+import java.util.List;
+
+public interface SubmissionRepository extends JpaRepository<Submission, Long> {
+    List<Submission> findByUserIdAndChallengeId(Long userId, Long challengeId);
+    List<Submission> findByUserId(Long userId);
 }

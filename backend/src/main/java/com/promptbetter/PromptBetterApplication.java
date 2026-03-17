@@ -4,10 +4,10 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
 @SpringBootApplication
-public class PromptCraftApplication {
+public class PromptBetterApplication {
 
 	public static void main(String[] args) {
-		SpringApplication.run(PromptCraftApplication.class, args);
+		SpringApplication.run(PromptBetterApplication.class, args);
 	}
 
 }
