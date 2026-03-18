@@ -22,9 +22,6 @@ public class Submission {
     @Column(name = "user_prompt", columnDefinition = "TEXT")
     private String userPrompt;
 
-    @Column(name = "ai_output", columnDefinition = "TEXT")
-    private String aiOutput;
-
     private int score;
 
     @Column(columnDefinition = "JSON")
