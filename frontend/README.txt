@@ -1,0 +1,1 @@
+To run FrontEnd -> Open Terminal in this location and enter {npx serve .}

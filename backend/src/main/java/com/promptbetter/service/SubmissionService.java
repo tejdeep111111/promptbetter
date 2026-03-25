@@ -8,12 +8,14 @@ import com.promptbetter.model.UserProgress;
 import com.promptbetter.repository.ChallengeRepository;
 import com.promptbetter.repository.SubmissionRepository;
 import com.promptbetter.repository.UserProgressRepository;
+import lombok.AllArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.util.Map;
 import java.util.Optional;
 
 @Service
+@AllArgsConstructor
 public class SubmissionService {
     private final SubmissionRepository submissionRepository;
     private final ChallengeRepository challengeRepository;
@@ -22,21 +24,11 @@ public class SubmissionService {
 
     private final ObjectMapper objectMapper = new ObjectMapper();
 
-    public SubmissionService(SubmissionRepository submissionRepository,
-                             ChallengeRepository challengeRepository,
-                             UserProgressRepository userProgressRepository,
-                             PromptEvaluatorService evaluatorService) {
-        this.submissionRepository = submissionRepository;
-        this.challengeRepository = challengeRepository;
-        this.userProgressRepository = userProgressRepository;
-        this.evaluatorService = evaluatorService;
-    }
-
     public Map<String, Object> submitPrompt(Long userId, Long challengeId, String prompt) throws Exception {
         Challenge challenge = challengeRepository.findById(challengeId)
                 .orElseThrow(() -> new RuntimeException("Challenge not found"));
 
-        String feedbackJson = evaluatorService.evaluatePrompt(challenge.getScenario(), prompt);
+        String feedbackJson = evaluatorService.evaluatePrompt(challenge.getScenario(), prompt, challenge.getIdealPrompt());
 
         int score = 0;
         try {

@@ -10,22 +10,19 @@ import org.springframework.web.client.RestTemplate;
 import java.util.List;
 import java.util.Map;
 
-
 @Service
 public class PromptEvaluatorService {
 
-    @Value("${openai.api.key}")
+    @Value("${api.key}")
     private String apiKey;
 
-    @Value("${openai.api.url}")
+    @Value("${api.base-url}")
     private String apiUrl;
 
-    @Value("${openai.model}")
+    @Value("${ai.model}")
     private String model;
 
-    //RestTemplate sends HTTP requests over the network and returns the response.
     private final RestTemplate restTemplate = new RestTemplate();
-    //ObjectMapper is used to convert between Java objects and JSON.
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     private static final String EVALUATOR_SYSTEM_PROMPT = """
@@ -53,6 +50,10 @@ public class PromptEvaluatorService {
         }
     """;
 
+    public String evaluatePrompt(String scenario, String userPrompt, String idealPrompt) {
+        return evaluatePrompt(scenario, userPrompt);
+    }
+
     public String evaluatePrompt(String scenario, String userPrompt) {
         try {
             HttpHeaders headers = new HttpHeaders();
@@ -62,23 +63,21 @@ public class PromptEvaluatorService {
             String userMessage = String.format("""
                 SCENARIO: %s
                 USER_PROMPT: %s
-                
+
                 Evaluate the USER_PROMPT and return the JSON evaluation.""", scenario, userPrompt);
 
             Map<String, Object> body = Map.of(
-                "model", model,
-                "messages", List.of(
-                    Map.of("role", "system", "content", EVALUATOR_SYSTEM_PROMPT),
-                    Map.of("role", "user", "content", userMessage)
-                ),
+                    "model", model,
+                    "messages", List.of(
+                            Map.of("role", "system", "content", EVALUATOR_SYSTEM_PROMPT),
+                            Map.of("role", "user", "content", userMessage)
+                    ),
                     "max_tokens", 800
             );
 
             HttpEntity<Map<String, Object>> request = new HttpEntity<>(body, headers);
-            // Send the request to the OpenAI API and get the response
             ResponseEntity<String> response = restTemplate.exchange(apiUrl, HttpMethod.POST, request, String.class);
 
-            // Parse the response to extract the evaluation
             JsonNode root = objectMapper.readTree(response.getBody());
             return root.path("choices").get(0).path("message").path("content").asText();
 
