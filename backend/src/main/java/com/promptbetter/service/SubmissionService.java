@@ -80,15 +80,13 @@ public class SubmissionService {
     }
 
     public Optional<Map<String, Object>> getLatestSubmission(Long userID, Long challengeId) {
-        List<Submission> submissionList = submissionRepository.findByUserIdAndChallengeId(userID, challengeId);
+        Optional<Submission> latestOptional = submissionRepository.findTopByUserIdAndChallengeIdOrderByCreatedAtDesc(userID, challengeId);
 
-        if (submissionList.isEmpty()) {
+        if (latestOptional.isEmpty()) {
             return Optional.empty();
         }
 
-        Submission latest = submissionList.stream()
-                                        .max((a,b) -> a.getCreatedAt().compareTo(b.getCreatedAt()))
-                                        .orElse(submissionList.get(submissionList.size() - 1));
+        Submission latest = latestOptional.get();
 
         try {
             JsonNode feedback = objectMapper.readTree(latest.getFeedback());

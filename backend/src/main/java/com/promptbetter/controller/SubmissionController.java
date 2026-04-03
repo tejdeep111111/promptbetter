@@ -1,6 +1,7 @@
 package com.promptbetter.controller;
 
 import com.promptbetter.model.User;
+import com.promptbetter.service.RateLimiterService;
 import com.promptbetter.service.SubmissionService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -15,6 +16,7 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class SubmissionController {
     private final SubmissionService submissionService;
+    private final RateLimiterService rateLimiterService;
 
     @PostMapping
     public ResponseEntity<?> submit(@RequestBody Map<String, Object> body, Authentication auth) {
@@ -23,6 +25,11 @@ public class SubmissionController {
             // Cast to User (which implements UserDetails) to get the real ID.
             User currentUser = (User) auth.getPrincipal();
             Long userId = currentUser.getId();
+
+            if(!rateLimiterService.isAllowed(userId)) {
+               long remaining = rateLimiterService.getRemaingTime(userId);
+               return ResponseEntity.status(429).body(Map.of("error", "Too many submissions. Please wait " + (remaining / 1000) + " seconds."));
+            }
 
             Long challengeId = Long.valueOf(body.get("challengeId").toString());
             String userPrompt = body.get("userPrompt").toString();

@@ -246,6 +246,8 @@ textarea.prompt-input::placeholder { color: var(--faint); }
 .btn-submit:hover { background: var(--accent2); }
 .btn-submit:active { transform: scale(0.98); }
 .btn-submit:disabled { background: var(--border2); color: var(--faint); cursor: not-allowed; transform: none; }
+.btn-submit.cooldown { background: var(--bg4); border: 1px solid var(--border2); color: var(--muted); }
+.btn-submit.cooldown:disabled { background: var(--bg4); }
 
 .spinner { width: 13px; height: 13px; border: 2px solid rgba(0,0,0,0.25); border-top-color: #0a0a0f; border-radius: 50%; animation: spin .65s linear infinite; display: none; flex-shrink: 0; }
 @keyframes spin { to { transform: rotate(360deg); } }
@@ -554,6 +556,11 @@ let currentDomain      = '';
 let currentLevel       = 1;
 let currentChallengeId = null;
 
+/* ── Rate Limiting State ── */
+let cooldownSeconds = 0;
+let cooldownInterval = null;
+let lastSubmittedPrompt = '';
+
 /* ── Boot ── */
 window.onload = () => {
   if (token && user) enterApp();
@@ -713,6 +720,9 @@ async function loadLevelPills(domain) {
 }
 
 async function switchLevel(level) {
+  // Skip if already on this level
+  if (currentLevel === level) return;
+
   currentLevel = level;
   document.querySelectorAll('.level-pill').forEach(p => p.classList.remove('active'));
   const pill = document.getElementById(`pill-${level}`);
@@ -720,6 +730,7 @@ async function switchLevel(level) {
   document.getElementById('prompt-input').value = '';
   document.getElementById('char-count').textContent = '0 chars';
   document.getElementById('result-card').classList.remove('show');
+  lastSubmittedPrompt = '';  // Reset on level change
   await loadChallenge(currentDomain, level);
 }
 
@@ -829,6 +840,9 @@ async function loadChallenge(domain, level) {
       document.getElementById('prompt-input').value = prevSubmission.userPrompt || '';
       document.getElementById('char-count').textContent = (prevSubmission.userPrompt?.length || 0) + ' chars';
 
+      // Track the previously submitted prompt to prevent duplicate submissions
+      lastSubmittedPrompt = prevSubmission.userPrompt || '';
+
       // Render the previous result
       renderResult({
         score: prevSubmission.score,
@@ -837,6 +851,8 @@ async function loadChallenge(domain, level) {
       });
 
       showToast('Showing your previous submission', 'success');
+    } else {
+      lastSubmittedPrompt = '';  // Reset if no previous submission
     }
 
   } catch (e) {
@@ -892,6 +908,18 @@ async function doSubmit() {
   if (!prompt) { showToast('Write a prompt first', 'error'); return; }
   if (!currentChallengeId) { showToast('No challenge loaded', 'error'); return; }
 
+  // Check if in cooldown
+  if (cooldownSeconds > 0) {
+    showToast(`Please wait ${cooldownSeconds} seconds`, 'error');
+    return;
+  }
+
+  // Check if same prompt as last submission (no changes made)
+  if (prompt === lastSubmittedPrompt) {
+    showToast('Make changes before resubmitting', 'error');
+    return;
+  }
+
   const btn     = document.getElementById('submit-btn');
   const spinner = document.getElementById('submit-spinner');
   const label   = document.getElementById('submit-label');
@@ -902,18 +930,82 @@ async function doSubmit() {
   document.getElementById('result-card').classList.remove('show');
 
   try {
-    const result = await api('POST', '/api/submissions', {
-      challengeId: currentChallengeId,
-      userPrompt: prompt
+    const headers = { 'Content-Type': 'application/json' };
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+
+    const res = await fetch(API + '/api/submissions', {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({
+        challengeId: currentChallengeId,
+        userPrompt: prompt
+      })
     });
-    renderResult(result);
+
+    const data = await res.json().catch(() => ({}));
+
+    // Handle rate limiting (429 Too Many Requests)
+    if (res.status === 429) {
+      const errorMsg = data.error || 'Too many requests';
+      // Extract seconds from message like "Too many submissions. Please wait 10 seconds."
+      const match = errorMsg.match(/(\d+)\s*seconds?/i);
+      const waitSeconds = match ? parseInt(match[1], 10) : 10;
+      startCooldown(waitSeconds);
+      showToast(errorMsg, 'error');
+      return;
+    }
+
+    if (!res.ok) {
+      if (res.status === 401 || res.status === 403) {
+        doLogout();
+        showToast('Session expired. Please sign in again.', 'error');
+        return;
+      }
+      throw new Error(data.error || data.message || `Request failed (${res.status})`);
+    }
+
+    // Save the submitted prompt to prevent duplicate submissions
+    lastSubmittedPrompt = prompt;
+    renderResult(data);
   } catch (e) {
     showToast(e.message || 'Submission failed', 'error');
   } finally {
-    btn.disabled = false;
-    spinner.style.display = 'none';
-    label.textContent = 'Submit prompt';
+    if (cooldownSeconds <= 0) {
+      btn.disabled = false;
+      spinner.style.display = 'none';
+      label.textContent = 'Submit prompt';
+    } else {
+      spinner.style.display = 'none';
+    }
   }
+}
+
+/* ── Rate Limiter Cooldown ── */
+function startCooldown(seconds) {
+  const btn = document.getElementById('submit-btn');
+  const label = document.getElementById('submit-label');
+
+  cooldownSeconds = seconds;
+  btn.disabled = true;
+  btn.classList.add('cooldown');
+  label.textContent = `Wait ${cooldownSeconds}s`;
+
+  // Clear any existing interval
+  if (cooldownInterval) clearInterval(cooldownInterval);
+
+  cooldownInterval = setInterval(() => {
+    cooldownSeconds--;
+    if (cooldownSeconds <= 0) {
+      clearInterval(cooldownInterval);
+      cooldownInterval = null;
+      btn.disabled = false;
+      btn.classList.remove('cooldown');
+      label.textContent = 'Submit prompt';
+      showToast('You can submit again', 'success');
+    } else {
+      label.textContent = `Wait ${cooldownSeconds}s`;
+    }
+  }, 1000);
 }
 
 function renderResult(result) {
