@@ -31,4 +31,15 @@ public class SubmissionController {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         }
     }
+
+    @GetMapping("/latest")
+    public ResponseEntity<?> getLatestSubmission(@RequestParam Long challengeId, Authentication auth) {
+        try {
+            User currentUser = (User) auth.getPrincipal();
+            Long userId = currentUser.getId();
+            return ResponseEntity.ok(submissionService.getLatestSubmission(userId, challengeId));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
 }

@@ -13,15 +13,16 @@ public class Submission {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "user_id")
+    @Column(name = "user_id", nullable = false)
     private Long userId;
 
-    @Column(name = "challenge_id")
+    @Column(name = "challenge_id", nullable = false)
     private Long challengeId;
 
-    @Column(name = "user_prompt", columnDefinition = "TEXT")
+    @Column(name = "user_prompt", columnDefinition = "TEXT", nullable = false)
     private String userPrompt;
 
+    @Column(nullable = false)
     private int score;
 
     @Column(columnDefinition = "JSON")

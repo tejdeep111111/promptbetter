@@ -19,11 +19,13 @@ public class User implements UserDetails {
     @GeneratedValue(strategy = GenerationType.IDENTITY) // JPA annotation to specify that the primary key will be generated automatically by the database
     private Long id;
 
+    @Column(nullable = false)
     private String name;
 
-    @Column(unique = true) // JPA annotation to specify that the email column must be unique in the database
+    @Column(nullable = false, unique = true) // JPA annotation to specify that the email column must be unique in the database
     private String email;
 
+    @Column(nullable = false)
     private String password;
 
     @Column(name = "created_at") // JPA annotation to specify the name of the column in the database

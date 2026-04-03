@@ -29,8 +29,9 @@ public class PromptEvaluatorService {
         You are an expert Prompt Engineering coach.
 
         You will be given:
-        1. SCENARIO: A real-world task the user is trying to solve
-        2. USER_PROMPT: The prompt the user wrote to solve that scenario
+        1. TASK: A real-world task the user is trying to solve
+        2. USER_PROMPT: The prompt the user wrote to solve that scenario(if the task requires some data like code snippet the user can just write "<CODE>" instead of the actual data)
+        3. EVALUATION_CRITERIA: A list of criteria to evaluate the user's prompt and the major things to be taken into account while evaluating the prompt.
 
         Evaluate the quality of the USER_PROMPT based on prompt engineering best practices
         and return ONLY valid JSON (no markdown, no extra text) in this exact format:
@@ -48,13 +49,15 @@ public class PromptEvaluatorService {
             "technique": <0-20>
           }
         }
+        Consider giving a score >= 70 to prompts that satisfies evaluation criteria well (More detailed info the user provides higher the score), even if they are not perfect. The "improved_prompt" should be a better version of the user's prompt that addresses the flaws you identified.
+        Return improved prompt only if the original prompt has significant flaws, otherwise just return the String "YOU ARE DOING GREAT AS USUAL" as the value of "improved_prompt".
     """;
 
-    public String evaluatePrompt(String scenario, String userPrompt, String idealPrompt) {
-        return evaluatePrompt(scenario, userPrompt);
-    }
+//    public String evaluatePrompt(String scenario, String userPrompt, String idealPrompt) {
+//        return evaluatePrompt(scenario, userPrompt);
+//    }
 
-    public String evaluatePrompt(String scenario, String userPrompt) {
+    public String evaluatePrompt(String task, String userPrompt) {
         try {
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.APPLICATION_JSON);
@@ -64,7 +67,7 @@ public class PromptEvaluatorService {
                 SCENARIO: %s
                 USER_PROMPT: %s
 
-                Evaluate the USER_PROMPT and return the JSON evaluation.""", scenario, userPrompt);
+                Evaluate the USER_PROMPT and return the JSON evaluation.""", task, userPrompt);
 
             Map<String, Object> body = Map.of(
                     "model", model,

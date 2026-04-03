@@ -1,6 +1,7 @@
 package com.promptbetter.controller;
 
 import com.promptbetter.service.ChallengeService;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
