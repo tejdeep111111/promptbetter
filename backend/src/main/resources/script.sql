@@ -1,52 +1,52 @@
-CREATE DATABASE IF NOT EXISTS promptbetter;
-
-USE promptbetter;
-
-CREATE TABLE IF NOT EXISTS users (
-    id BIGINT AUTO_INCREMENT PRIMARY KEY,
-    name VARCHAR(100) NOT NULL,
-    email VARCHAR(150) NOT NULL UNIQUE,
-    password VARCHAR(255) NOT NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-
-CREATE TABLE IF NOT EXISTS challenges (
-    id BIGINT AUTO_INCREMENT PRIMARY KEY,
-    domain VARCHAR(100) NOT NULL,
-    level INT NOT NULL,
-    title VARCHAR(200) NOT NULL,
-    scenario TEXT NOT NULL,
-    ideal_prompt TEXT NOT NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-
-CREATE TABLE IF NOT EXISTS user_progress (
-    id BIGINT AUTO_INCREMENT PRIMARY KEY,
-    user_id BIGINT NOT NULL,
-    domain VARCHAR(100) NOT NULL,
-    current_level INT DEFAULT 1,
-    xp INT DEFAULT 0,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    FOREIGN KEY (user_id) REFERENCES users(id),
-    UNIQUE KEY unique_user_domain (user_id, domain)
-);
-
-CREATE TABLE IF NOT EXISTS submissions (
-    id BIGINT AUTO_INCREMENT PRIMARY KEY,
-    user_id BIGINT NOT NULL,
-    challenge_id BIGINT NOT NULL,
-    user_prompt TEXT NOT NULL,
-    score INT,
-    feedback JSON,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (user_id) REFERENCES users(id),
-    FOREIGN KEY (challenge_id) REFERENCES challenges(id)
-);
-
--- Seed challenges
-INSERT INTO challenges (domain, level, title, scenario, ideal_prompt) VALUES
-                                                                          ('Software Engineering', 1, 'Write a Sorting Function', 'You need an AI to write a Python function that sorts a list of dictionaries by a given key.', 'You are a senior Python developer. Write a Python function that sorts a list of dictionaries by a given key in ascending order. The function should be named sort_by_key(data, key). Handle the case where the key does not exist. Include a docstring and example usage.'),
-                                                                          ('Software Engineering', 2, 'Generate Unit Tests', 'You have a function called calculate_discount(price, percent) and need an AI to write unit tests for it.', 'You are a Python testing expert. Write comprehensive pytest unit tests for a function calculate_discount(price, percent) that applies a percentage discount to a price. Cover: normal cases, edge cases (0%, 100%, negative values), and invalid inputs. Use descriptive test names.'),
-                                                                          ('Content Writing', 1, 'Write a Blog Introduction', 'You need an AI to write an engaging introduction paragraph for a blog post about remote work.', 'You are a professional content writer. Write an engaging introduction paragraph (100-150 words) for a blog post titled "The Future of Remote Work in 2025". The tone should be conversational yet professional. Hook the reader with a surprising statistic or bold statement.'),
-                                                                          ('Content Writing', 2, 'Write a Product Description', 'You need an AI to write a product description for wireless noise-cancelling headphones.', 'You are an expert copywriter specializing in consumer electronics. Write a compelling product description for wireless noise-cancelling headphones priced at $199. Include: a punchy headline, 3 key benefits, technical specs in bullet points, and a call-to-action. Keep it under 200 words. Target audience: remote workers aged 25-40.'),
-                                                                          ('Data Analysis', 1, 'Summarize a Dataset', 'You need an AI to help you understand a CSV dataset containing sales data with columns: date, product, region, revenue, units_sold.', 'You are a data analyst. I have a CSV dataset with columns: date, product, region, revenue, units_sold. Write a Python script using pandas to: load the CSV, display basic statistics (mean, max, min for revenue and units_sold), find the top 3 products by total revenue, and identify the best performing region. Include comments in the code.');
+-- CREATE DATABASE IF NOT EXISTS promptbetter;
+--
+-- USE promptbetter;
+--
+-- CREATE TABLE IF NOT EXISTS users (
+--     id BIGINT AUTO_INCREMENT PRIMARY KEY,
+--     name VARCHAR(100) NOT NULL,
+--     email VARCHAR(150) NOT NULL UNIQUE,
+--     password VARCHAR(255) NOT NULL,
+--     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+-- );
+--
+-- CREATE TABLE IF NOT EXISTS challenges (
+--     id BIGINT AUTO_INCREMENT PRIMARY KEY,
+--     domain VARCHAR(100) NOT NULL,
+--     level INT NOT NULL,
+--     title VARCHAR(200) NOT NULL,
+--     scenario TEXT NOT NULL,
+--     ideal_prompt TEXT NOT NULL,
+--     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+-- );
+--
+-- CREATE TABLE IF NOT EXISTS user_progress (
+--     id BIGINT AUTO_INCREMENT PRIMARY KEY,
+--     user_id BIGINT NOT NULL,
+--     domain VARCHAR(100) NOT NULL,
+--     current_level INT DEFAULT 1,
+--     xp INT DEFAULT 0,
+--     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+--     FOREIGN KEY (user_id) REFERENCES users(id),
+--     UNIQUE KEY unique_user_domain (user_id, domain)
+-- );
+--
+-- CREATE TABLE IF NOT EXISTS submissions (
+--     id BIGINT AUTO_INCREMENT PRIMARY KEY,
+--     user_id BIGINT NOT NULL,
+--     challenge_id BIGINT NOT NULL,
+--     user_prompt TEXT NOT NULL,
+--     score INT,
+--     feedback JSON,
+--     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+--     FOREIGN KEY (user_id) REFERENCES users(id),
+--     FOREIGN KEY (challenge_id) REFERENCES challenges(id)
+-- );
+--
+-- -- Seed challenges
+-- INSERT INTO challenges (domain, level, title, scenario, ideal_prompt) VALUES
+--                                                                           ('Software Engineering', 1, 'Write a Sorting Function', 'You need an AI to write a Python function that sorts a list of dictionaries by a given key.', 'You are a senior Python developer. Write a Python function that sorts a list of dictionaries by a given key in ascending order. The function should be named sort_by_key(data, key). Handle the case where the key does not exist. Include a docstring and example usage.'),
+--                                                                           ('Software Engineering', 2, 'Generate Unit Tests', 'You have a function called calculate_discount(price, percent) and need an AI to write unit tests for it.', 'You are a Python testing expert. Write comprehensive pytest unit tests for a function calculate_discount(price, percent) that applies a percentage discount to a price. Cover: normal cases, edge cases (0%, 100%, negative values), and invalid inputs. Use descriptive test names.'),
+--                                                                           ('Content Writing', 1, 'Write a Blog Introduction', 'You need an AI to write an engaging introduction paragraph for a blog post about remote work.', 'You are a professional content writer. Write an engaging introduction paragraph (100-150 words) for a blog post titled "The Future of Remote Work in 2025". The tone should be conversational yet professional. Hook the reader with a surprising statistic or bold statement.'),
+--                                                                           ('Content Writing', 2, 'Write a Product Description', 'You need an AI to write a product description for wireless noise-cancelling headphones.', 'You are an expert copywriter specializing in consumer electronics. Write a compelling product description for wireless noise-cancelling headphones priced at $199. Include: a punchy headline, 3 key benefits, technical specs in bullet points, and a call-to-action. Keep it under 200 words. Target audience: remote workers aged 25-40.'),
+--                                                                           ('Data Analysis', 1, 'Summarize a Dataset', 'You need an AI to help you understand a CSV dataset containing sales data with columns: date, product, region, revenue, units_sold.', 'You are a data analyst. I have a CSV dataset with columns: date, product, region, revenue, units_sold. Write a Python script using pandas to: load the CSV, display basic statistics (mean, max, min for revenue and units_sold), find the top 3 products by total revenue, and identify the best performing region. Include comments in the code.');

@@ -12,6 +12,7 @@ import lombok.AllArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.util.Map;
+import java.util.List;
 import java.util.Optional;
 
 @Service
@@ -28,7 +29,7 @@ public class SubmissionService {
         Challenge challenge = challengeRepository.findById(challengeId)
                 .orElseThrow(() -> new RuntimeException("Challenge not found"));
 
-        String feedbackJson = evaluatorService.evaluatePrompt(challenge.getScenario(), prompt, challenge.getIdealPrompt());
+        String feedbackJson = evaluatorService.evaluatePrompt(challenge.getTask(), prompt);
 
         int score = 0;
         try {
@@ -43,6 +44,7 @@ public class SubmissionService {
         submission.setChallengeId(challengeId);
         submission.setUserPrompt(prompt);
         submission.setScore(score);
+        submission.setFeedback(feedbackJson);
         submissionRepository.save(submission);
 
         // Step 4: Update user progress (level up if score >= 70)
@@ -75,5 +77,51 @@ public class SubmissionService {
 
         userProgressRepository.save(progress);
         return leveledUp;
+    }
+
+    public Optional<Map<String, Object>> getLatestSubmission(Long userID, Long challengeId) {
+        Optional<Submission> latestOptional = submissionRepository.findTopByUserIdAndChallengeIdOrderByCreatedAtDesc(userID, challengeId);
+
+        if (latestOptional.isEmpty()) {
+            return Optional.empty();
+        }
+
+        Submission latest = latestOptional.get();
+
+        try {
+            JsonNode feedback = objectMapper.readTree(latest.getFeedback());
+            return Optional.of(Map.of(
+                    "id", latest.getId(),
+                    "score", latest.getScore(),
+                    "userPrompt", latest.getUserPrompt(),
+                    "feedback", feedback,
+                    "createdAt", latest.getCreatedAt().toString()
+            ));
+        } catch (Exception e) {
+            // Fallback: return a default feedback structure the frontend can handle
+            Map<String, Object> fallbackFeedback = Map.of(
+                    "score", latest.getScore(),
+                    "strengths", List.of(),
+                    "flaws", List.of(),
+                    "improved_prompt", "",
+                    "explanation", "Feedback unavailable",
+                    "dimensions", Map.of(
+                            "clarity", 0,
+                            "context", 0,
+                            "specificity", 0,
+                            "constraints", 0,
+                            "technique", 0
+                    )
+            );
+
+            return Optional.of(Map.of(
+                    "id", latest.getId(),
+                    "score", latest.getScore(),
+                    "userPrompt", latest.getUserPrompt(),
+                    "feedback", fallbackFeedback,
+                    "createdAt", latest.getCreatedAt().toString()
+            ));
+        }
+
     }
 }

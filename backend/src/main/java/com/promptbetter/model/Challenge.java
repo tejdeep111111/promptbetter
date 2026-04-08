@@ -4,8 +4,6 @@ package com.promptbetter.model;
 import jakarta.persistence.*;
 import lombok.Data;
 
-import java.time.LocalDateTime;
-
 @Data
 @Entity
 @Table(name = "challenges")
@@ -14,19 +12,28 @@ public class Challenge {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @Column(nullable = false)
     private String domain;
 
+    @Column(nullable = false)
     private int level;
 
+    private String hardness;
+
+    private String topicTaught;
+
+    @Column(nullable = false)
     private String title;
 
+    @Column(nullable = false, columnDefinition = "TEXT")
+    private String task;
+
     @Column(columnDefinition = "TEXT")
-    private String scenario;
+    private String aiEvaluationGuide;
 
-    @Column(name = "ideal_prompt", columnDefinition = "TEXT")
-    private String idealPrompt;
+    @Column(nullable = true)
+    private String constraintAsString;
 
-    @Column(name = "created_at")
-    private LocalDateTime createdAt = LocalDateTime.now();
-
+    @Column(columnDefinition = "TEXT")
+    private String keyTakeaway;
 }

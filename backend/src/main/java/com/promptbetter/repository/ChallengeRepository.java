@@ -11,6 +11,7 @@ import java.util.Optional;
 @Repository
 public interface ChallengeRepository extends JpaRepository<Challenge, Long> {
     List<Challenge> findByDomain(String domain);
+
     Optional<Challenge> findByDomainAndLevel(String domain, int level);
 
     @Query("SELECT DISTINCT c.domain FROM Challenge c")

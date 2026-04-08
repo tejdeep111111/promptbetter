@@ -13,12 +13,14 @@ public class UserProgress {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "user_id")
+    @Column(name = "user_id", nullable = false)
     private Long userId;
 
+    @Column(nullable = false)
     private String domain;
 
-    @Column(name = "current_level")
+
+    @Column(name = "current_level", nullable = false)
     private int currentLevel = 1;
 
     private int xp = 0;
