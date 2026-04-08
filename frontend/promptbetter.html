@@ -1591,9 +1591,14 @@ document.addEventListener('click', (e) => {
     'Stage 4 · Prediction',
   ];
 
+  // accentAlpha: maps attention value [0,1] to rgba accent color
+  // alpha range: 0.08 (min, near-invisible) to 0.86 (max, vivid)
   function accentAlpha(v) {
     return 'rgba(184,255,87,' + (0.08 + v * 0.78).toFixed(2) + ')';
   }
+
+  var STAGE_COUNT    = 4;    // tokenize → embed → attend → predict
+  var STAGE_DURATION = 4200; // ms each stage is displayed before advancing
 
   function initLLMAnimation(containerId) {
     const container = document.getElementById(containerId);
@@ -1629,7 +1634,7 @@ document.addEventListener('click', (e) => {
         areaEl.style.opacity    = '1';
         lblEl.style.opacity     = '1';
         [renderTokenize, renderEmbed, renderAttend, renderPredict][n](areaEl);
-        autoT = setTimeout(function() { goTo((stageIdx + 1) % 4); }, 4200);
+        autoT = setTimeout(function() { goTo((stageIdx + 1) % STAGE_COUNT); }, STAGE_DURATION);
       }, 240);
     }
 
@@ -1695,7 +1700,7 @@ document.addEventListener('click', (e) => {
           c.className = 'llm-hm-c';
           c.style.background = 'var(--bg4)';
           c.textContent = v >= 0.7 ? v.toFixed(1) : '';
-          c.style.color = v >= 0.7 ? '#0a0a0f' : 'transparent';
+          c.style.color = v >= 0.7 ? 'var(--bg)' : 'transparent'; /* dark text on bright cell */
           rowEl.appendChild(c);
         });
         hmEl.appendChild(rowEl);
