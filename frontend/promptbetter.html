@@ -17,8 +17,8 @@
   --border:  #22222e;
   --border2: #2e2e3e;
   --text:    #f0f0f8;
-  --muted:   #8888a8;
-  --faint:   #44445a;
+  --muted:   #d8d8ee;
+  --faint:   #8888a8;
   --accent:  #b8ff57;
   --accent2: #96d93e;
   --accent3: rgba(184,255,87,0.08);
@@ -394,6 +394,178 @@ textarea.prompt-input::placeholder { color: var(--faint); }
     max-width: 85vw;
   }
 }
+
+/* ════════════════════════
+   LLM ANIMATION
+════════════════════════ */
+.llm-wrap {
+  width: 100%;
+  background: rgba(14,14,20,0.96);
+  border: 1px solid var(--border2);
+  border-radius: var(--r2);
+  padding: 18px 20px 16px;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 0 0 1px rgba(184,255,87,0.04), inset 0 1px 0 rgba(255,255,255,0.03);
+}
+.llm-wrap::after {
+  content: '';
+  position: absolute;
+  bottom: -60px; right: -60px;
+  width: 220px; height: 220px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(184,255,87,0.07) 0%, transparent 70%);
+  pointer-events: none;
+}
+.llm-head {
+  display: flex; align-items: center; gap: 8px; margin-bottom: 10px;
+  padding-bottom: 10px; border-bottom: 1px solid var(--border);
+}
+.llm-pulse-dot {
+  width: 8px; height: 8px; border-radius: 50%;
+  background: var(--accent);
+  animation: llmPulse 1.5s ease-in-out infinite;
+  flex-shrink: 0;
+  box-shadow: 0 0 6px rgba(184,255,87,0.5);
+}
+@keyframes llmPulse {
+  0%,100% { opacity: 1; transform: scale(1); }
+  50%      { opacity: 0.35; transform: scale(0.65); }
+}
+.llm-head-txt {
+  font-size: 11px; font-family: var(--mono); color: var(--muted);
+  text-transform: uppercase; letter-spacing: 0.1em; flex: 1;
+}
+.llm-slbl {
+  font-size: 14px; font-family: var(--serif); color: var(--accent);
+  font-weight: 600; margin-bottom: 5px; min-height: 20px; letter-spacing: -0.01em;
+}
+/* Plain-English one-liner shown under the stage title */
+.llm-desc {
+  font-size: 12px; color: var(--muted); line-height: 1.55;
+  margin-bottom: 14px; min-height: 18px; font-weight: 300;
+}
+.llm-area { min-height: 158px; display: flex; align-items: flex-start; padding-top: 2px; }
+
+/* ─ Stage 1: Tokenization ─ */
+.llm-toks { display: flex; flex-direction: column; gap: 8px; width: 100%; }
+.llm-toks-caption { font-size: 10px; font-family: var(--mono); color: var(--faint); text-transform: uppercase; letter-spacing: 0.08em; }
+.llm-toks-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: flex-end; }
+.llm-tok {
+  display: flex; flex-direction: column; align-items: center; gap: 4px;
+  opacity: 0; transform: translateY(8px) scale(0.92);
+  transition: opacity 0.3s, transform 0.3s;
+}
+.llm-tok.vis { opacity: 1; transform: none; }
+.llm-tok-w {
+  font-family: var(--mono); font-size: 14px; white-space: nowrap;
+  background: var(--bg3); border: 1px solid var(--border2);
+  border-radius: 6px; padding: 6px 12px;
+  transition: border-color 0.4s, background 0.4s, color 0.4s, box-shadow 0.4s;
+}
+.llm-tok.lit .llm-tok-w {
+  border-color: rgba(184,255,87,0.6);
+  background: rgba(184,255,87,0.09);
+  color: var(--accent);
+  box-shadow: 0 0 14px rgba(184,255,87,0.16);
+}
+.llm-tok-id {
+  font-family: var(--mono); font-size: 10px; color: var(--muted);
+  opacity: 0; transition: opacity 0.3s;
+}
+.llm-tok-id.vis { opacity: 1; }
+
+/* ─ Stage 2: Embedding ─ */
+.llm-embs { display: flex; gap: 14px; flex-wrap: wrap; align-items: flex-start; width: 100%; }
+.llm-emb {
+  display: flex; flex-direction: column; align-items: center; gap: 5px;
+  opacity: 0; transform: scale(0.75);
+  transition: opacity 0.4s, transform 0.4s;
+}
+.llm-emb.vis { opacity: 1; transform: none; }
+.llm-emb-nm { font-family: var(--mono); font-size: 12px; color: var(--text); font-weight: 500; margin-bottom: 2px; }
+.llm-emb-g  { display: grid; grid-template-columns: repeat(3,1fr); gap: 3px; }
+.llm-emb-n  {
+  font-family: var(--mono); font-size: 9px;
+  background: rgba(184,255,87,0.06); border: 1px solid rgba(184,255,87,0.18);
+  border-radius: 3px; padding: 3px 4px; text-align: center;
+  color: var(--accent); opacity: 0; transition: opacity 0.25s;
+}
+.llm-emb-n.vis { opacity: 1; }
+.llm-emb-hint { font-size: 9px; font-family: var(--mono); color: var(--faint); margin-top: 2px; }
+
+/* ─ Stage 3: Attention ─ */
+.llm-attn { width: 100%; display: flex; flex-direction: column; gap: 8px; }
+.llm-attn-row { display: flex; justify-content: space-between; gap: 4px; }
+.llm-attn-t {
+  font-family: var(--mono); font-size: 11px;
+  background: var(--bg3); border: 1px solid var(--border2);
+  border-radius: 5px; padding: 5px 8px;
+  transition: border-color 0.4s, box-shadow 0.4s, color 0.4s;
+}
+.llm-attn-t.hi {
+  border-color: rgba(184,255,87,0.6); color: var(--accent);
+  box-shadow: 0 0 10px rgba(184,255,87,0.2);
+}
+.llm-hm-wrap { display: flex; flex-direction: column; gap: 3px; opacity: 0; transition: opacity 0.5s; }
+.llm-hm-wrap.vis { opacity: 1; }
+.llm-hm-legend {
+  display: flex; align-items: center; gap: 4px;
+  font-size: 9px; font-family: var(--mono); color: var(--faint);
+  margin-bottom: 1px;
+}
+.llm-hm-legend-dot { width: 8px; height: 8px; border-radius: 2px; flex-shrink: 0; }
+.llm-hm { display: flex; flex-direction: column; gap: 2px; }
+.llm-hm-row { display: flex; gap: 2px; }
+.llm-hm-c {
+  width: 24px; height: 24px; border-radius: 3px; transition: background 0.4s;
+  font-family: var(--mono); font-size: 7.5px;
+  display: flex; align-items: center; justify-content: center;
+}
+
+/* ─ Stage 4: Prediction ─ */
+.llm-pred { width: 100%; display: flex; flex-direction: column; gap: 0; }
+.llm-pred-ctx {
+  font-family: var(--mono); font-size: 12px; color: var(--muted); margin-bottom: 10px;
+  background: var(--bg3); border: 1px solid var(--border); border-radius: 6px;
+  padding: 7px 10px; line-height: 1.5;
+}
+.llm-pred-ctx em { color: var(--accent); font-style: normal; }
+.llm-pred-q { font-size: 10px; font-family: var(--mono); color: var(--faint); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 7px; }
+.llm-pred-bars { display: flex; flex-direction: column; gap: 6px; }
+.llm-pred-bar  { display: flex; align-items: center; gap: 8px; }
+.llm-pred-bl   { font-family: var(--mono); font-size: 12px; color: var(--text); width: 56px; text-align: right; flex-shrink: 0; }
+.llm-pred-trk  { flex: 1; height: 8px; background: var(--bg4); border-radius: 4px; overflow: hidden; }
+.llm-pred-fl   { height: 100%; border-radius: 4px; width: 0; transition: width 0.85s cubic-bezier(.22,1,.36,1); }
+.llm-pred-fl.p0 { background: var(--accent); }
+.llm-pred-fl.p1 { background: rgba(184,255,87,0.65); }
+.llm-pred-fl.p2 { background: rgba(184,255,87,0.4); }
+.llm-pred-fl.p3 { background: rgba(184,255,87,0.22); }
+.llm-pred-bp   { font-family: var(--mono); font-size: 10px; color: var(--muted); width: 30px; }
+.llm-pred-out  {
+  display: flex; align-items: center; gap: 8px; margin-top: 10px;
+  font-family: var(--mono); font-size: 11px; color: var(--muted);
+  opacity: 0; transition: opacity 0.4s;
+  background: rgba(184,255,87,0.04); border: 1px solid rgba(184,255,87,0.15);
+  border-radius: 6px; padding: 7px 10px;
+}
+.llm-pred-out.vis { opacity: 1; }
+.llm-pred-tok  {
+  font-family: var(--mono); font-size: 14px; color: var(--accent);
+  background: rgba(184,255,87,0.12); border: 1px solid rgba(184,255,87,0.4);
+  border-radius: 5px; padding: 3px 10px;
+  transform: scale(0.8) translateY(-4px); opacity: 0;
+  transition: transform 0.35s ease, opacity 0.35s;
+  box-shadow: 0 0 12px rgba(184,255,87,0.15);
+}
+.llm-pred-tok.vis { transform: none; opacity: 1; }
+
+/* ─ Stage dots / progress ─ */
+.llm-footer { display: flex; align-items: center; justify-content: center; gap: 10px; margin-top: 12px; }
+.llm-dots { display: flex; gap: 7px; }
+.llm-dot  { width: 7px; height: 7px; border-radius: 50%; background: var(--border2); transition: background 0.3s, transform 0.3s; }
+.llm-dot.on { background: var(--accent); transform: scale(1.4); box-shadow: 0 0 5px rgba(184,255,87,0.4); }
+.llm-step-lbl { font-size: 9px; font-family: var(--mono); color: var(--faint); letter-spacing: 0.06em; }
 </style>
 </head>
 <body>
@@ -411,6 +583,25 @@ textarea.prompt-input::placeholder { color: var(--faint); }
           <div class="auth-step"><div class="auth-step-num">2</div>Read the challenge task</div>
           <div class="auth-step"><div class="auth-step-num">3</div>Write your best prompt</div>
           <div class="auth-step"><div class="auth-step-num">4</div>Get AI feedback &amp; level up</div>
+        </div>
+        <!-- LLM animation -->
+        <div class="llm-wrap" id="llm-auth">
+          <div class="llm-head">
+            <div class="llm-pulse-dot"></div>
+            <span class="llm-head-txt">Watch how AI reads your text — live</span>
+          </div>
+          <div class="llm-slbl" id="llm-auth-lbl"></div>
+          <div class="llm-desc" id="llm-auth-desc"></div>
+          <div class="llm-area" id="llm-auth-area"></div>
+          <div class="llm-footer">
+            <div class="llm-dots">
+              <div class="llm-dot"></div>
+              <div class="llm-dot"></div>
+              <div class="llm-dot"></div>
+              <div class="llm-dot"></div>
+            </div>
+            <span class="llm-step-lbl" id="llm-auth-step">step 1 of 4</span>
+          </div>
         </div>
       </div>
       <div style="font-size:11px;color:var(--faint);font-family:var(--mono)">Spring Boot · JWT · AI Evaluation</div>
@@ -486,8 +677,11 @@ textarea.prompt-input::placeholder { color: var(--faint); }
         </div>
       </div>
       <nav class="sidebar-nav">
-        <div class="nav-item active" onclick="showView('view-home')">
+        <div class="nav-item active" data-view="view-home" onclick="showView('view-home')">
           <span class="nav-icon">⬡</span> Domains
+        </div>
+        <div class="nav-item" data-view="view-llm" onclick="showView('view-llm')">
+          <span class="nav-icon">◈</span> How LLMs Work
         </div>
       </nav>
       <div class="sidebar-footer">
@@ -626,6 +820,68 @@ textarea.prompt-input::placeholder { color: var(--faint); }
         </div>
 
       </div><!-- /view-challenge -->
+
+      <!-- HOW LLMs WORK -->
+      <div id="view-llm" class="view">
+        <div class="view-header">
+          <h1>How <em>LLMs</em> work</h1>
+          <p>Understand the mechanics behind large language models — from tokenization to prediction.</p>
+        </div>
+        <div style="max-width:520px">
+          <div class="llm-wrap" id="llm-view" style="margin-top:0">
+            <div class="llm-head">
+              <div class="llm-pulse-dot"></div>
+              <span class="llm-head-txt">Watch how AI reads your text — step by step</span>
+            </div>
+            <div class="llm-slbl" id="llm-view-lbl"></div>
+            <div class="llm-desc" id="llm-view-desc"></div>
+            <div class="llm-area" id="llm-view-area"></div>
+            <div class="llm-footer">
+              <div class="llm-dots">
+                <div class="llm-dot"></div>
+                <div class="llm-dot"></div>
+                <div class="llm-dot"></div>
+                <div class="llm-dot"></div>
+              </div>
+              <span class="llm-step-lbl" id="llm-view-step">step 1 of 4</span>
+            </div>
+          </div>
+          <div class="card" style="margin-top:16px">
+            <div class="section-label">What just happened?</div>
+            <div style="display:flex;flex-direction:column;gap:16px;margin-top:12px">
+              <div style="display:flex;gap:12px;align-items:flex-start">
+                <div class="auth-step-num">1</div>
+                <div>
+                  <div style="font-size:13px;font-weight:600;margin-bottom:4px">Breaking into Tokens</div>
+                  <div style="font-size:12px;color:var(--muted);line-height:1.7;font-weight:300">Your sentence is split into small word-pieces called <em style="color:var(--accent);font-style:normal">tokens</em>. "ChatGPT" might become two tokens: "Chat" + "GPT". Each token gets a unique ID number so the computer can work with it.</div>
+                </div>
+              </div>
+              <div style="display:flex;gap:12px;align-items:flex-start">
+                <div class="auth-step-num">2</div>
+                <div>
+                  <div style="font-size:13px;font-weight:600;margin-bottom:4px">Words → Numbers (Embeddings)</div>
+                  <div style="font-size:12px;color:var(--muted);line-height:1.7;font-weight:300">Each token ID is looked up in a giant table to get a list of numbers (called a <em style="color:var(--accent);font-style:normal">vector</em>). These numbers capture the word's meaning — "king" and "queen" will have similar vectors.</div>
+                </div>
+              </div>
+              <div style="display:flex;gap:12px;align-items:flex-start">
+                <div class="auth-step-num">3</div>
+                <div>
+                  <div style="font-size:13px;font-weight:600;margin-bottom:4px">Finding Connections (Attention)</div>
+                  <div style="font-size:12px;color:var(--muted);line-height:1.7;font-weight:300">The model figures out which words are related to each other. In "The fox jumped", "fox" and "jumped" are strongly linked. The brighter the cell in the grid, the stronger the connection between those two words.</div>
+                </div>
+              </div>
+              <div style="display:flex;gap:12px;align-items:flex-start">
+                <div class="auth-step-num">4</div>
+                <div>
+                  <div style="font-size:13px;font-weight:600;margin-bottom:4px">Guessing the Next Word</div>
+                  <div style="font-size:12px;color:var(--muted);line-height:1.7;font-weight:300">Using everything it learned, the model scores every word in its vocabulary and picks the most likely next word. It then appends that word and repeats — that's how it writes a full response to your prompt!</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div><!-- /view-llm -->
+
     </div><!-- /main-content -->
   </div><!-- /app-shell -->
 </div><!-- /page-app -->
@@ -637,8 +893,10 @@ textarea.prompt-input::placeholder { color: var(--faint); }
 const API = 'http://localhost:8080';
 
 /* ── State ── */
-let token  = localStorage.getItem('pb_token') || '';
-let user   = JSON.parse(localStorage.getItem('pb_user') || 'null');
+let token  = '';
+let user   = null;
+try { token = localStorage.getItem('pb_token') || ''; } catch(e) {}
+try { user  = JSON.parse(localStorage.getItem('pb_user') || 'null'); } catch(e) {}
 let currentDomain      = '';
 let currentLevel       = 1;
 let currentChallengeId = null;
@@ -667,7 +925,12 @@ function showView(id) {
   document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
   document.getElementById(id).classList.add('active');
   document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
-  if (id === 'view-home') document.querySelector('.nav-item').classList.add('active');
+  const navEl = document.querySelector(`.nav-item[data-view="${id}"]`);
+  if (navEl) navEl.classList.add('active');
+  if (id === 'view-llm' && !window._llmViewInited) {
+    window._llmViewInited = true;
+    initLLMAnimation('llm-view');
+  }
 }
 
 /* ══════════════════════════════════
@@ -718,8 +981,8 @@ function saveSession(data) {
   // data = { token, name, email, id }
   token = data.token;
   user  = { id: data.id, name: data.name, email: data.email };
-  localStorage.setItem('pb_token', token);
-  localStorage.setItem('pb_user', JSON.stringify(user));
+  try { localStorage.setItem('pb_token', token); } catch(e) {}
+  try { localStorage.setItem('pb_user', JSON.stringify(user)); } catch(e) {}
 }
 
 function enterApp() {
@@ -733,8 +996,8 @@ function enterApp() {
 
 function doLogout() {
   token = ''; user = null;
-  localStorage.removeItem('pb_token');
-  localStorage.removeItem('pb_user');
+  try { localStorage.removeItem('pb_token'); } catch(e) {}
+  try { localStorage.removeItem('pb_user'); } catch(e) {}
   showPage('page-login');
   document.getElementById('login-email').value    = '';
   document.getElementById('login-password').value = '';
@@ -1207,16 +1470,18 @@ function escHtml(s) {
 ══════════════════════════════════ */
 async function loadGlossary() {
   // Try localStorage first for instant load
-  const cached = localStorage.getItem('pb_glossary');
-  if (cached) {
-    try { GLOSSARY = JSON.parse(cached); } catch(e) {}
-  }
+  try {
+    const cached = localStorage.getItem('pb_glossary');
+    if (cached) {
+      try { GLOSSARY = JSON.parse(cached); } catch(e) {}
+    }
+  } catch(e) {}
 
   // Fetch fresh glossary in background (no auth required, handle errors gracefully)
   try {
     const data = await api('GET', '/api/glossary', null, false);
     GLOSSARY = data;
-    localStorage.setItem('pb_glossary', JSON.stringify(data));
+    try { localStorage.setItem('pb_glossary', JSON.stringify(data)); } catch(e) {}
   } catch (e) {
     console.warn('Failed to load glossary:', e);
     // Don't let glossary failure affect the app - just use cached or empty
@@ -1325,6 +1590,277 @@ document.addEventListener('click', (e) => {
     }
   }
 });
+
+/* ══════════════════════════════════
+   LLM ANIMATION ENGINE
+══════════════════════════════════ */
+(function() {
+  const TOKENS = [
+    { w: 'The',   id: '464'   },
+    { w: 'quick', id: '3812'  },
+    { w: 'brown', id: '7586'  },
+    { w: 'fox',   id: '21831' },
+    { w: 'jumps', id: '18045' },
+  ];
+  const EMBEDS = [
+    { name: 'The',   nums: ['0.82','-0.31','0.17','-0.55','0.94','-0.08'] },
+    { name: 'quick', nums: ['-0.43','0.71','0.32','0.15','-0.62','0.88'] },
+    { name: 'brown', nums: ['0.56','-0.19','0.77','-0.34','0.21','-0.67'] },
+  ];
+  const ATTN = [
+    [0.90, 0.30, 0.10, 0.05, 0.05],
+    [0.20, 0.85, 0.40, 0.10, 0.10],
+    [0.10, 0.30, 0.90, 0.30, 0.15],
+    [0.05, 0.10, 0.20, 0.90, 0.35],
+    [0.05, 0.10, 0.15, 0.30, 0.95],
+  ];
+  const PREDS = [
+    { lbl: 'over',    pct: 42, cls: 'p0' },
+    { lbl: 'across',  pct: 28, cls: 'p1' },
+    { lbl: 'into',    pct: 15, cls: 'p2' },
+    { lbl: 'through', pct:  9, cls: 'p3' },
+  ];
+
+  // Plain stage titles — no jargon
+  const STAGE_LABELS = [
+    '① Breaking into Tokens',
+    '② Words → Number Lists',
+    '③ Finding Connections',
+    '④ Guessing the Next Word',
+  ];
+
+  // One plain-English sentence per stage, shown under the title
+  const STAGE_DESCS = [
+    'The AI chops your text into small pieces called "tokens". Each piece gets a unique ID number — that\'s how computers handle words.',
+    'Each token ID is swapped for a list of numbers that captures its meaning. Similar words get similar number-lists.',
+    'The model checks which words are related. Brighter squares = those two words are strongly connected.',
+    'Using everything above, the model scores every possible next word and picks the winner. Then repeats — that\'s how it writes!',
+  ];
+
+  // accentAlpha: maps attention value [0,1] to rgba accent color
+  // alpha range: 0.08 (min, near-invisible) to 0.86 (max, vivid)
+  function accentAlpha(v) {
+    return 'rgba(184,255,87,' + (0.08 + v * 0.78).toFixed(2) + ')';
+  }
+
+  var STAGE_COUNT    = 4;    // tokenize → embed → attend → predict
+  var STAGE_DURATION = 5000; // ms each stage is displayed before advancing (slightly longer for reading)
+
+  function initLLMAnimation(containerId) {
+    const container = document.getElementById(containerId);
+    if (!container) return;
+    const lblEl  = container.querySelector('.llm-slbl');
+    const descEl = container.querySelector('.llm-desc');
+    const areaEl = container.querySelector('.llm-area');
+    const dotEls = container.querySelectorAll('.llm-dot');
+    const stepEl = container.querySelector('.llm-step-lbl');
+    let stageIdx = 0;
+    let autoT    = null;
+    let innerTs  = [];
+
+    function schedT(fn, ms) {
+      const id = setTimeout(fn, ms);
+      innerTs.push(id);
+      return id;
+    }
+    function clearInner() { innerTs.forEach(clearTimeout); innerTs = []; }
+
+    function goTo(n) {
+      clearInner();
+      clearTimeout(autoT);
+      stageIdx = n;
+      dotEls.forEach(function(d, i) { d.classList.toggle('on', i === n); });
+      if (stepEl) stepEl.textContent = 'step ' + (n + 1) + ' of ' + STAGE_COUNT;
+      areaEl.style.transition = 'opacity 0.2s';
+      areaEl.style.opacity    = '0';
+      lblEl.style.transition  = 'opacity 0.2s';
+      lblEl.style.opacity     = '0';
+      if (descEl) { descEl.style.transition = 'opacity 0.2s'; descEl.style.opacity = '0'; }
+      schedT(function() {
+        areaEl.innerHTML    = '';
+        lblEl.textContent   = STAGE_LABELS[n];
+        if (descEl) descEl.textContent = STAGE_DESCS[n];
+        areaEl.style.transition = 'opacity 0.3s';
+        lblEl.style.transition  = 'opacity 0.3s';
+        areaEl.style.opacity    = '1';
+        lblEl.style.opacity     = '1';
+        if (descEl) { descEl.style.transition = 'opacity 0.3s'; descEl.style.opacity = '1'; }
+        [renderTokenize, renderEmbed, renderAttend, renderPredict][n](areaEl);
+        autoT = setTimeout(function() { goTo((stageIdx + 1) % STAGE_COUNT); }, STAGE_DURATION);
+      }, 240);
+    }
+
+    function renderTokenize(area) {
+      var wrap = document.createElement('div');
+      wrap.className = 'llm-toks';
+
+      var cap = document.createElement('div');
+      cap.className = 'llm-toks-caption';
+      cap.textContent = 'Your sentence →';
+      wrap.appendChild(cap);
+
+      var row = document.createElement('div');
+      row.className = 'llm-toks-row';
+      wrap.appendChild(row);
+      area.appendChild(wrap);
+
+      TOKENS.forEach(function(tk, i) {
+        schedT(function() {
+          var el = document.createElement('div');
+          el.className = 'llm-tok';
+          el.innerHTML = '<div class="llm-tok-w">' + tk.w + '</div><div class="llm-tok-id">ID: ' + tk.id + '</div>';
+          row.appendChild(el);
+          requestAnimationFrame(function() {
+            el.classList.add('vis');
+            schedT(function() { el.querySelector('.llm-tok-id').classList.add('vis'); }, 300);
+          });
+          schedT(function() { el.classList.add('lit'); }, 1000 + i * 120);
+        }, i * 180);
+      });
+    }
+
+    function renderEmbed(area) {
+      var wrap = document.createElement('div');
+      wrap.className = 'llm-embs';
+      area.appendChild(wrap);
+      EMBEDS.forEach(function(emb, ei) {
+        schedT(function() {
+          var el = document.createElement('div');
+          el.className = 'llm-emb';
+          el.innerHTML = '<div class="llm-emb-nm">' + emb.name + '</div>' +
+            '<div class="llm-emb-g">' +
+              emb.nums.map(function(n) { return '<span class="llm-emb-n">' + n + '</span>'; }).join('') +
+            '</div>' +
+            '<div class="llm-emb-hint">meaning as numbers</div>';
+          wrap.appendChild(el);
+          requestAnimationFrame(function() {
+            el.classList.add('vis');
+            el.querySelectorAll('.llm-emb-n').forEach(function(n, ni) {
+              schedT(function() { n.classList.add('vis'); }, 280 + ni * 55);
+            });
+          });
+        }, ei * 320);
+      });
+    }
+
+    function renderAttend(area) {
+      var wrap = document.createElement('div');
+      wrap.className = 'llm-attn';
+      var tRow = document.createElement('div');
+      tRow.className = 'llm-attn-row';
+      TOKENS.forEach(function(tk) {
+        var el = document.createElement('div');
+        el.className = 'llm-attn-t';
+        el.textContent = tk.w;
+        tRow.appendChild(el);
+      });
+      wrap.appendChild(tRow);
+
+      // Heatmap with legend
+      var hmWrap = document.createElement('div');
+      hmWrap.className = 'llm-hm-wrap';
+
+      var legend = document.createElement('div');
+      legend.className = 'llm-hm-legend';
+      var dot1 = document.createElement('div');
+      dot1.className = 'llm-hm-legend-dot';
+      dot1.style.background = accentAlpha(0.95);
+      var dot2 = document.createElement('div');
+      dot2.className = 'llm-hm-legend-dot';
+      dot2.style.background = accentAlpha(0.15);
+      legend.appendChild(dot1);
+      legend.appendChild(document.createTextNode(' strong link'));
+      legend.appendChild(document.createTextNode('  '));
+      legend.appendChild(dot2);
+      legend.appendChild(document.createTextNode(' weak link'));
+      hmWrap.appendChild(legend);
+
+      var hmEl = document.createElement('div');
+      hmEl.className = 'llm-hm';
+      ATTN.forEach(function(row) {
+        var rowEl = document.createElement('div');
+        rowEl.className = 'llm-hm-row';
+        row.forEach(function(v) {
+          var c = document.createElement('div');
+          c.className = 'llm-hm-c';
+          c.style.background = 'var(--bg4)';
+          c.textContent = v >= 0.7 ? v.toFixed(1) : '';
+          c.style.color = v >= 0.7 ? 'var(--bg)' : 'transparent'; /* dark text on bright cell */
+          rowEl.appendChild(c);
+        });
+        hmEl.appendChild(rowEl);
+      });
+      hmWrap.appendChild(hmEl);
+      wrap.appendChild(hmWrap);
+      area.appendChild(wrap);
+
+      var toks = tRow.querySelectorAll('.llm-attn-t');
+      var fi = 0;
+      function focusPair() {
+        toks.forEach(function(el, i) { el.classList.toggle('hi', i === fi || i === (fi + 2) % 5); });
+        fi = (fi + 1) % 5;
+      }
+      focusPair();
+      schedT(focusPair, 700);
+      schedT(focusPair, 1400);
+      schedT(function() {
+        hmWrap.classList.add('vis');
+        var cells = hmEl.querySelectorAll('.llm-hm-c');
+        cells.forEach(function(c, ci) {
+          var row = Math.floor(ci / 5), col = ci % 5;
+          schedT(function() { c.style.background = accentAlpha(ATTN[row][col]); }, ci * 22);
+        });
+      }, 900);
+    }
+
+    function renderPredict(area) {
+      var wrap = document.createElement('div');
+      wrap.className = 'llm-pred';
+
+      var ctxEl = document.createElement('div');
+      ctxEl.className = 'llm-pred-ctx';
+      ctxEl.innerHTML = '"The quick brown fox <em>jumps</em> ___"';
+      wrap.appendChild(ctxEl);
+
+      var qEl = document.createElement('div');
+      qEl.className = 'llm-pred-q';
+      qEl.textContent = 'What word fills the blank?';
+      wrap.appendChild(qEl);
+
+      var barsEl = document.createElement('div');
+      barsEl.className = 'llm-pred-bars';
+      PREDS.forEach(function(p) {
+        var row = document.createElement('div');
+        row.className = 'llm-pred-bar';
+        row.innerHTML = '<div class="llm-pred-bl">' + p.lbl + '</div>' +
+          '<div class="llm-pred-trk"><div class="llm-pred-fl ' + p.cls + '" data-w="' + p.pct + '%"></div></div>' +
+          '<div class="llm-pred-bp">' + p.pct + '%</div>';
+        barsEl.appendChild(row);
+      });
+      wrap.appendChild(barsEl);
+
+      var outEl = document.createElement('div');
+      outEl.className = 'llm-pred-out';
+      outEl.innerHTML = '✓ Best guess: <span class="llm-pred-tok">over</span>';
+      wrap.appendChild(outEl);
+      area.appendChild(wrap);
+
+      schedT(function() {
+        wrap.querySelectorAll('.llm-pred-fl').forEach(function(f) { f.style.width = f.dataset.w; });
+      }, 80);
+      schedT(function() {
+        outEl.classList.add('vis');
+        schedT(function() { outEl.querySelector('.llm-pred-tok').classList.add('vis'); }, 200);
+      }, 2100);
+    }
+
+    goTo(0);
+  }
+
+  window.initLLMAnimation = initLLMAnimation;
+  // Script is at bottom of body — DOM is ready, start auth animation immediately
+  initLLMAnimation('llm-auth');
+})();
 </script>
 </body>
 </html>
