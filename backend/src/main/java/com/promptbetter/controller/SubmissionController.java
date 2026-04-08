@@ -11,7 +11,6 @@ import org.springframework.web.bind.annotation.*;
 import java.util.Map;
 
 @RestController
-@CrossOrigin
 @RequestMapping("/api/submissions")
 @RequiredArgsConstructor
 public class SubmissionController {
@@ -27,7 +26,7 @@ public class SubmissionController {
             Long userId = currentUser.getId();
 
             if(!rateLimiterService.isAllowed(userId)) {
-               long remaining = rateLimiterService.getRemaingTime(userId);
+               long remaining = rateLimiterService.getRemainingTime(userId);
                return ResponseEntity.status(429).body(Map.of("error", "Too many submissions. Please wait " + (remaining / 1000) + " seconds."));
             }
 

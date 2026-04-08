@@ -1,5 +1,6 @@
 package com.promptbetter.service;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.util.Map;
@@ -8,7 +9,9 @@ import java.util.concurrent.ConcurrentHashMap;
 @Service
 public class RateLimiterService {  // Simple in-memory rate limiter
     private final Map<Long, Long> lastSubmissionTime = new ConcurrentHashMap<>();
-    private static final long SUBMISSION_INTERVAL_MS = 10;
+
+    @Value("${app.submissionIntervalMs}")
+    private long SUBMISSION_INTERVAL_MS;
 
     public boolean isAllowed(Long userId) {
         long currentTime = System.currentTimeMillis();
@@ -21,7 +24,7 @@ public class RateLimiterService {  // Simple in-memory rate limiter
         return false;
     }
 
-    public long getRemaingTime(Long userId) {
+    public long getRemainingTime(Long userId) {
         Long lastTime = lastSubmissionTime.get(userId);
         if (lastTime == null) return 0;
 

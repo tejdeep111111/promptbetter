@@ -217,9 +217,47 @@ a { color: inherit; text-decoration: none; }
 .topic-chip::before { content: '◉'; font-size: 9px; color: var(--accent); }
 
 .section-label { font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.1em; color: var(--faint); margin-bottom: 8px; }
-.task-text { font-size: 14px; line-height: 1.75; color: var(--muted); font-weight: 300; border-left: 2px solid var(--border2); padding-left: 16px; }
-.takeaway-block { background: rgba(232,255,71,0.05); border: 1px solid rgba(232,255,71,0.18); border-radius: var(--r); padding: 12px 14px; margin-top: 14px; }
-.takeaway-label { color: #b8cc2a !important; }
+
+/* Task text - prominent, clean look */
+.task-text {
+  font-size: 14px;
+  line-height: 1.8;
+  color: var(--text);
+  font-weight: 300;
+  background: var(--bg3);
+  border-radius: var(--r);
+  padding: 16px 18px;
+  border: 1px solid var(--border);
+}
+
+/* Takeaway block - distinct tip/insight style */
+.takeaway-block {
+  background: linear-gradient(135deg, rgba(184,255,87,0.08) 0%, rgba(184,255,87,0.02) 100%);
+  border: 1px solid rgba(184,255,87,0.25);
+  border-left: 3px solid var(--accent);
+  border-radius: var(--r);
+  padding: 0;
+  margin-top: 18px;
+  overflow: hidden;
+}
+.takeaway-label {
+  color: var(--accent) !important;
+  background: rgba(184,255,87,0.1);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.takeaway-label::before {
+  content: '💡';
+  font-size: 12px;
+}
+.takeaway-block .info-block-text {
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.7;
+  padding: 14px 16px;
+}
+
 .constraints-row { display: flex; flex-wrap: wrap; gap: 8px; }
 .constraint-btn { background: var(--bg3); border: 1px solid var(--border2); border-radius: 6px; padding: 5px 12px; font-size: 12px; font-family: var(--mono); color: var(--accent); cursor: pointer; transition: background .15s, border-color .15s; white-space: nowrap; }
 .constraint-btn:hover { background: rgba(232,255,71,0.1); border-color: var(--accent); }
@@ -307,6 +345,55 @@ textarea.prompt-input::placeholder { color: var(--faint); }
 .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
 .toast.success { border-color: rgba(87,255,184,0.35); color: var(--success); }
 .toast.error   { border-color: rgba(255,107,107,0.35); color: var(--danger); }
+
+/* ════════════════════════
+   GLOSSARY TOOLTIPS
+════════════════════════ */
+.term {
+  position: relative;
+  border-bottom: 1px dashed var(--accent);
+  cursor: help;
+  color: var(--accent);
+  display: inline;
+}
+
+.term-tooltip {
+  position: fixed;
+  background: var(--bg2);
+  border: 1px solid var(--accent);
+  border-radius: var(--r);
+  padding: 12px 14px;
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--muted);
+  width: max-content;
+  max-width: 280px;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.6);
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.15s, visibility 0.15s;
+  z-index: 9999;
+  pointer-events: none;
+  text-align: left;
+  font-weight: 300;
+}
+
+.term-tooltip .term-title {
+  display: block;
+  font-weight: 600;
+  color: var(--accent);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 6px;
+  font-family: var(--mono);
+}
+
+@media (max-width: 640px) {
+  .term-tooltip {
+    max-width: 85vw;
+  }
+}
 </style>
 </head>
 <body>
@@ -561,6 +648,9 @@ let cooldownSeconds = 0;
 let cooldownInterval = null;
 let lastSubmittedPrompt = '';
 
+/* ── Glossary State ── */
+let GLOSSARY = {};
+
 /* ── Boot ── */
 window.onload = () => {
   if (token && user) enterApp();
@@ -637,6 +727,7 @@ function enterApp() {
   document.getElementById('sb-email').textContent  = user.email;
   document.getElementById('sb-avatar').textContent = user.name.charAt(0).toUpperCase();
   showPage('page-app');
+  loadGlossary(); // Load glossary once at login
   loadDomains();
 }
 
@@ -797,15 +888,15 @@ async function loadChallenge(domain, level) {
       topicRow.style.display = 'none';
     }
 
-    // 5. task (required field)
-    document.getElementById('ch-task').textContent = c.task || '—';
+    // 5. task (required field) - parse glossary terms
+    document.getElementById('ch-task').innerHTML = parseGlossaryTerms(c.task || '—');
 
     // 6. aiEvaluationGuide — not shown in frontend
 
-    // 7. keyTakeaway (optional field) — shown with distinct styling
+    // 7. keyTakeaway (optional field) — shown with distinct styling, parse glossary terms
     const takeawayBlock = document.getElementById('ch-takeaway-block');
     if (c.keyTakeaway) {
-      document.getElementById('ch-takeaway-text').textContent = c.keyTakeaway;
+      document.getElementById('ch-takeaway-text').innerHTML = parseGlossaryTerms(c.keyTakeaway);
       takeawayBlock.style.display = '';
     } else {
       takeawayBlock.style.display = 'none';
@@ -1109,6 +1200,131 @@ function showToast(msg, type = '') {
 function escHtml(s) {
   return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
+
+/* ══════════════════════════════════
+   GLOSSARY SYSTEM
+   GET /api/glossary → { termKey: { display, definition, category }, ... }
+══════════════════════════════════ */
+async function loadGlossary() {
+  // Try localStorage first for instant load
+  const cached = localStorage.getItem('pb_glossary');
+  if (cached) {
+    try { GLOSSARY = JSON.parse(cached); } catch(e) {}
+  }
+
+  // Fetch fresh glossary in background (no auth required, handle errors gracefully)
+  try {
+    const data = await api('GET', '/api/glossary', null, false);
+    GLOSSARY = data;
+    localStorage.setItem('pb_glossary', JSON.stringify(data));
+  } catch (e) {
+    console.warn('Failed to load glossary:', e);
+    // Don't let glossary failure affect the app - just use cached or empty
+  }
+}
+
+/**
+ * Parse [[term-key]] markers in text and replace with tooltip spans
+ * @param {string} text - Text containing [[term-key]] markers
+ * @returns {string} HTML with glossary tooltips
+ */
+function parseGlossaryTerms(text) {
+  if (!text) return '';
+
+  return text.replace(/\[\[([^\]]+)\]\]/g, (match, termKey) => {
+    const key = termKey.toLowerCase().trim();
+    const t = GLOSSARY[key];
+
+    if (!t) {
+      // Term not found in glossary, return plain text without brackets
+      return termKey;
+    }
+
+    return `<span class="term" tabindex="0">${escHtml(t.display)}<span class="term-tooltip"><span class="term-title">${escHtml(t.display)}</span>${escHtml(t.definition)}</span></span>`;
+  });
+}
+
+// Position tooltip smartly to avoid overlap and stay on screen
+function positionTooltip(term, tooltip) {
+  const termRect = term.getBoundingClientRect();
+  const tooltipWidth = 280; // max-width from CSS
+  const tooltipHeight = tooltip.offsetHeight || 100;
+  const padding = 10;
+
+  // Calculate initial position (above the term, centered)
+  let left = termRect.left + (termRect.width / 2) - (tooltipWidth / 2);
+  let top = termRect.top - tooltipHeight - padding;
+
+  // Keep tooltip within viewport horizontally
+  if (left < padding) {
+    left = padding;
+  } else if (left + tooltipWidth > window.innerWidth - padding) {
+    left = window.innerWidth - tooltipWidth - padding;
+  }
+
+  // If tooltip would go above viewport, show it below the term instead
+  if (top < padding) {
+    top = termRect.bottom + padding;
+  }
+
+  tooltip.style.left = left + 'px';
+  tooltip.style.top = top + 'px';
+}
+
+// Show tooltip on hover/focus
+document.addEventListener('mouseenter', (e) => {
+  if (e.target.classList && e.target.classList.contains('term')) {
+    const tooltip = e.target.querySelector('.term-tooltip');
+    if (tooltip) {
+      tooltip.style.opacity = '1';
+      tooltip.style.visibility = 'visible';
+      positionTooltip(e.target, tooltip);
+    }
+  }
+}, true);
+
+document.addEventListener('mouseleave', (e) => {
+  if (e.target.classList && e.target.classList.contains('term')) {
+    const tooltip = e.target.querySelector('.term-tooltip');
+    if (tooltip) {
+      tooltip.style.opacity = '0';
+      tooltip.style.visibility = 'hidden';
+    }
+  }
+}, true);
+
+// Mobile touch support for glossary tooltips
+document.addEventListener('click', (e) => {
+  const term = e.target.closest('.term');
+
+  // Close all other open tooltips
+  document.querySelectorAll('.term').forEach(t => {
+    if (t !== term) {
+      const tip = t.querySelector('.term-tooltip');
+      if (tip) {
+        tip.style.opacity = '0';
+        tip.style.visibility = 'hidden';
+      }
+    }
+  });
+
+  // Toggle clicked term (for mobile tap)
+  if (term) {
+    e.preventDefault();
+    const tooltip = term.querySelector('.term-tooltip');
+    if (tooltip) {
+      const isVisible = tooltip.style.opacity === '1';
+      if (isVisible) {
+        tooltip.style.opacity = '0';
+        tooltip.style.visibility = 'hidden';
+      } else {
+        tooltip.style.opacity = '1';
+        tooltip.style.visibility = 'visible';
+        positionTooltip(term, tooltip);
+      }
+    }
+  }
+});
 </script>
 </body>
 </html>

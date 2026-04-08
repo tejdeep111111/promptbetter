@@ -31,6 +31,9 @@ public class User implements UserDetails {
     @Column(name = "created_at") // JPA annotation to specify the name of the column in the database
     private LocalDateTime createdAt = LocalDateTime.now();
 
+    @Column(nullable = false)
+    private String role = "ROLE_USER"; // Default role, can be ROLE_ADMIN
+
     /**
      * Spring Security uses getUsername() to identify the principal.
      * We use email as the unique identifier.
@@ -41,12 +44,12 @@ public class User implements UserDetails {
     }
 
     /**
-     * Every registered user gets ROLE_USER by default.
-     * Add more roles to the User entity when you need ROLE_ADMIN, etc.
+     * Returns the user's role as a GrantedAuthority.
+     * Roles: ROLE_USER, ROLE_ADMIN
      */
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
-        return List.of(new SimpleGrantedAuthority("ROLE_USER"));
+        return List.of(new SimpleGrantedAuthority(role));
     }
 
     // Return true for all flags — override these when you add

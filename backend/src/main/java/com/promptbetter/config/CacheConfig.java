@@ -25,7 +25,8 @@ public class CacheConfig {
                 "users",
                 "domains",
                 "challenges",
-                "challengesByDomain"
+                "challengesByDomain",
+                "glossary"
         ));
 
         return cacheManager;

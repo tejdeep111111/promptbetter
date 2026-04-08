@@ -18,6 +18,9 @@ public class AuthService {
 
 
     public Map<String, Object> register(String name, String email, String password) {
+        if (name == null || name.isBlank() || email == null || email.isBlank() || password == null || password.isBlank()) {
+            throw new IllegalArgumentException("Name, email, and password are required");
+        }
         if (userRepository.existsByEmail(email)) {
             throw new RuntimeException("Email already in use");
         }
