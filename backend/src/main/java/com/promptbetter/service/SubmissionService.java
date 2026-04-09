@@ -29,7 +29,12 @@ public class SubmissionService {
         Challenge challenge = challengeRepository.findById(challengeId)
                 .orElseThrow(() -> new RuntimeException("Challenge not found"));
 
-        String feedbackJson = evaluatorService.evaluatePrompt(challenge.getTask(), prompt);
+        // Before calling evaluatePrompt, handle empty criteria
+        String criteria = challenge.getAiEvaluationGuide();
+        if (criteria == null || criteria.isBlank()) {
+            criteria = "Evaluate based on general prompt engineering best practices — clarity, context, specificity, constraints, and technique.";
+        }
+        String feedbackJson = evaluatorService.evaluatePrompt(challenge.getTask(), prompt, challenge.getAiEvaluationGuide());
 
         int score = 0;
         try {
