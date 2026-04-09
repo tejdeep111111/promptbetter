@@ -347,6 +347,55 @@ textarea.prompt-input::placeholder { color: var(--faint); }
 .toast.error   { border-color: rgba(255,107,107,0.35); color: var(--danger); }
 
 /* ════════════════════════
+   PROFILE
+════════════════════════ */
+.profile-header-card {
+  display: flex; align-items: center; gap: 20px;
+  background: var(--bg2); border: 1px solid var(--border2);
+  border-radius: var(--r2); padding: 24px 28px;
+  margin-bottom: 20px;
+}
+.profile-avatar-lg {
+  width: 64px; height: 64px; border-radius: 50%;
+  background: var(--accent3); border: 2px solid rgba(184,255,87,0.3);
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--serif); font-size: 26px; font-weight: 700;
+  color: var(--accent); flex-shrink: 0;
+}
+.profile-header-info { display: flex; flex-direction: column; gap: 4px; }
+.profile-name { font-family: var(--serif); font-size: 20px; font-weight: 700; letter-spacing: -0.01em; }
+.profile-email { font-size: 13px; color: var(--muted); font-weight: 300; }
+
+.profile-stats-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 24px; }
+@media (max-width: 560px) { .profile-stats-row { grid-template-columns: 1fr; } }
+.profile-stat-card {
+  background: var(--bg2); border: 1px solid var(--border); border-radius: var(--r);
+  padding: 16px 20px; text-align: center;
+}
+.profile-stat-val { font-family: var(--mono); font-size: 28px; font-weight: 700; color: var(--accent); line-height: 1; margin-bottom: 6px; }
+.profile-stat-lbl { font-size: 11px; color: var(--faint); text-transform: uppercase; letter-spacing: 0.07em; }
+
+.profile-domain-card {
+  background: var(--bg2); border: 1px solid var(--border); border-radius: var(--r);
+  padding: 16px 20px; margin-bottom: 10px;
+}
+.profile-domain-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+.profile-domain-name { display: flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 600; text-transform: capitalize; }
+.profile-domain-icon { font-size: 18px; }
+.profile-level-badge {
+  display: inline-flex; align-items: center; gap: 4px;
+  background: var(--accent3); border: 1px solid rgba(184,255,87,0.2);
+  border-radius: 20px; padding: 3px 10px;
+  font-size: 11px; font-family: var(--mono); color: var(--accent); font-weight: 600;
+}
+.profile-xp-row { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; }
+.profile-xp-label { font-size: 11px; color: var(--faint); font-family: var(--mono); width: 50px; flex-shrink: 0; }
+.profile-xp-track { flex: 1; height: 5px; background: var(--bg4); border-radius: 3px; overflow: hidden; }
+.profile-xp-fill { height: 100%; background: var(--accent); border-radius: 3px; transition: width .6s cubic-bezier(.22,1,.36,1); }
+.profile-xp-val { font-size: 11px; color: var(--muted); font-family: var(--mono); flex-shrink: 0; }
+.profile-domain-meta { font-size: 11px; color: var(--faint); font-family: var(--mono); }
+
+/* ════════════════════════
    GLOSSARY TOOLTIPS
 ════════════════════════ */
 .term {
@@ -683,6 +732,9 @@ textarea.prompt-input::placeholder { color: var(--faint); }
         <div class="nav-item" data-view="view-llm" onclick="showView('view-llm')">
           <span class="nav-icon">◈</span> How LLMs Work
         </div>
+        <div class="nav-item" data-view="view-profile" onclick="showView('view-profile'); loadProfile()">
+          <span class="nav-icon">◎</span> Profile
+        </div>
       </nav>
       <div class="sidebar-footer">
         <button class="logout-btn" onclick="doLogout()">
@@ -882,6 +934,55 @@ textarea.prompt-input::placeholder { color: var(--faint); }
         </div>
       </div><!-- /view-llm -->
 
+      <!-- PROFILE -->
+      <div id="view-profile" class="view">
+        <div class="view-header">
+          <h1>Your <em>Profile</em></h1>
+          <p>Track your progress across all domains</p>
+        </div>
+
+        <!-- Profile header card -->
+        <div class="profile-header-card">
+          <div class="profile-avatar-lg" id="profile-avatar-lg">A</div>
+          <div class="profile-header-info">
+            <div class="profile-name" id="profile-name">—</div>
+            <div class="profile-email" id="profile-email">—</div>
+          </div>
+        </div>
+
+        <!-- Stats row -->
+        <div class="profile-stats-row" id="profile-stats-row">
+          <div class="profile-stat-card">
+            <div class="profile-stat-val" id="stat-total-xp">—</div>
+            <div class="profile-stat-lbl">Total XP</div>
+          </div>
+          <div class="profile-stat-card">
+            <div class="profile-stat-val" id="stat-domains">—</div>
+            <div class="profile-stat-lbl">Domains Practiced</div>
+          </div>
+          <div class="profile-stat-card">
+            <div class="profile-stat-val" id="stat-highest-level">—</div>
+            <div class="profile-stat-lbl">Highest Level</div>
+          </div>
+        </div>
+
+        <!-- Domain progress list -->
+        <div class="section-label" style="margin-bottom:12px">Domain Progress</div>
+        <div id="profile-domains-list">
+          <!-- Loading skeletons -->
+          <div class="profile-domain-card">
+            <div class="skeleton" style="height:18px;width:120px;margin-bottom:10px"></div>
+            <div class="skeleton" style="height:10px;width:100%;margin-bottom:6px"></div>
+            <div class="skeleton" style="height:10px;width:60%"></div>
+          </div>
+          <div class="profile-domain-card">
+            <div class="skeleton" style="height:18px;width:100px;margin-bottom:10px"></div>
+            <div class="skeleton" style="height:10px;width:100%;margin-bottom:6px"></div>
+            <div class="skeleton" style="height:10px;width:60%"></div>
+          </div>
+        </div>
+      </div><!-- /view-profile -->
+
     </div><!-- /main-content -->
   </div><!-- /app-shell -->
 </div><!-- /page-app -->
@@ -1001,6 +1102,77 @@ function doLogout() {
   showPage('page-login');
   document.getElementById('login-email').value    = '';
   document.getElementById('login-password').value = '';
+}
+
+/* ══════════════════════════════════
+   PROFILE
+   GET /api/user/progress → UserProgress[]
+     UserProgress: { id, userId, domain, currentLevel, xp, updatedAt }
+══════════════════════════════════ */
+async function loadProfile() {
+  // Fill in static user info
+  const avatarEl = document.getElementById('profile-avatar-lg');
+  const nameEl   = document.getElementById('profile-name');
+  const emailEl  = document.getElementById('profile-email');
+  if (user) {
+    avatarEl.textContent = user.name.charAt(0).toUpperCase();
+    nameEl.textContent   = user.name;
+    emailEl.textContent  = user.email;
+  }
+
+  const listEl = document.getElementById('profile-domains-list');
+  // Show loading skeletons while fetching
+  listEl.innerHTML = `
+    <div class="profile-domain-card"><div class="skeleton" style="height:18px;width:120px;margin-bottom:10px"></div><div class="skeleton" style="height:10px;width:100%;margin-bottom:6px"></div><div class="skeleton" style="height:10px;width:60%"></div></div>
+    <div class="profile-domain-card"><div class="skeleton" style="height:18px;width:100px;margin-bottom:10px"></div><div class="skeleton" style="height:10px;width:100%;margin-bottom:6px"></div><div class="skeleton" style="height:10px;width:60%"></div></div>
+  `;
+  document.getElementById('stat-total-xp').textContent     = '—';
+  document.getElementById('stat-domains').textContent      = '—';
+  document.getElementById('stat-highest-level').textContent = '—';
+
+  try {
+    const progress = await api('GET', '/api/user/progress');
+    if (!progress || !progress.length) {
+      listEl.innerHTML = '<div class="empty-state"><div class="empty-icon">🌱</div><p>No domains practiced yet. Start a challenge to track your progress!</p></div>';
+      document.getElementById('stat-total-xp').textContent      = '0';
+      document.getElementById('stat-domains').textContent       = '0';
+      document.getElementById('stat-highest-level').textContent = '—';
+      return;
+    }
+
+    const totalXP      = progress.reduce((s, p) => s + (p.xp || 0), 0);
+    const highestLevel = progress.reduce((m, p) => Math.max(m, p.currentLevel || 0), 0);
+    document.getElementById('stat-total-xp').textContent      = totalXP.toLocaleString();
+    document.getElementById('stat-domains').textContent       = progress.length;
+    document.getElementById('stat-highest-level').textContent = highestLevel;
+
+    // XP is cumulative; show how much of the "current level threshold" (100 * currentLevel) has been earned
+    listEl.innerHTML = progress.map(p => {
+      const icon       = DOMAIN_ICONS[p.domain.toLowerCase()] || '◆';
+      const xpTarget   = 100 * (p.currentLevel || 1);
+      const xpPct      = Math.min(100, Math.round((p.xp || 0) / xpTarget * 100));
+      const lastDate   = p.updatedAt ? new Date(p.updatedAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }) : null;
+      return `
+        <div class="profile-domain-card">
+          <div class="profile-domain-top">
+            <div class="profile-domain-name">
+              <span class="profile-domain-icon">${icon}</span>
+              ${p.domain}
+            </div>
+            <div class="profile-level-badge">Lvl ${p.currentLevel || 1}</div>
+          </div>
+          <div class="profile-xp-row">
+            <div class="profile-xp-label">XP</div>
+            <div class="profile-xp-track"><div class="profile-xp-fill" style="width:${xpPct}%"></div></div>
+            <div class="profile-xp-val">${(p.xp || 0).toLocaleString()}</div>
+          </div>
+          ${lastDate ? `<div class="profile-domain-meta">Last practiced: ${lastDate}</div>` : ''}
+        </div>
+      `;
+    }).join('');
+  } catch (e) {
+    listEl.innerHTML = `<div class="empty-state"><div class="empty-icon">⚠</div><p>${e.message}</p></div>`;
+  }
 }
 
 /* ══════════════════════════════════
