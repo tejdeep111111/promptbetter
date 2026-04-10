@@ -1263,8 +1263,11 @@ async function loadLevelPills(domain, signal) {
     const challenges = await api('GET', `/api/challenges?domain=${encodeURIComponent(domain)}`, null, true, signal);
     const levels = [...new Set(challenges.map(c => c.level))].sort((a, b) => a - b);
     pillsEl.innerHTML = levels.map(l => `
-      <div class="level-pill ${l === currentLevel ? 'active' : ''}" id="pill-${l}" onclick="switchLevel(${l})">Level ${l}</div>
+      <div class="level-pill ${l === currentLevel ? 'active' : ''}" id="pill-${l}" data-level="${l}">Level ${l}</div>
     `).join('');
+    pillsEl.querySelectorAll('.level-pill').forEach(pill => {
+      pill.addEventListener('click', () => switchLevel(Number(pill.dataset.level)));
+    });
   } catch (e) {
     if (e.name !== 'AbortError') console.warn('loadLevelPills error:', e);
   }
@@ -1294,7 +1297,7 @@ async function loadPreviousSubmission(challengeId) {
   try {
     const data = await api('GET', `/api/submissions/latest?challengeId=${challengeId}`);
     // api() returns {} for 204 No Content (no body) — treat as no submission
-    return (data && data.score !== undefined) ? data : null;
+    return (data && data.id !== undefined) ? data : null;
   } catch (e) {
     // Any error (including session expiry) — no previous submission available
     console.log('No previous submission found');
@@ -1414,7 +1417,8 @@ async function loadChallenge(domain, level, signal) {
     document.getElementById('ch-empty-msg').textContent = e.message || 'Failed to load challenge.';
     console.error('loadChallenge error:', e);
   } finally {
-    if (cooldownSeconds <= 0) {
+    // Only re-enable if this request was not superseded by a newer one (signal not aborted)
+    if (cooldownSeconds <= 0 && (!signal || !signal.aborted)) {
       document.getElementById('submit-btn').disabled = false;
     }
   }
