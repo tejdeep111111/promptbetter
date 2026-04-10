@@ -1013,6 +1013,11 @@ let lastSubmittedPrompt = '';
 /* ── Glossary State ── */
 let GLOSSARY = {};
 
+/* ── Skeleton templates ── */
+const SK_DOMAIN_CARD = '<div class="domain-card"><div class="skeleton" style="height:26px;width:26px;border-radius:50%;margin-bottom:12px"></div><div class="skeleton" style="height:14px;width:70px;margin-bottom:6px"></div><div class="skeleton" style="height:11px;width:110px"></div></div>';
+const SK_LEVEL_PILL  = '<div class="skeleton" style="height:28px;width:64px;border-radius:20px"></div>';
+const SK_FEEDBACK_ITEM = (w) => `<div class="feedback-item"><div class="skeleton" style="height:12px;width:${w};margin-bottom:10px"></div><div class="skeleton" style="height:11px;width:100%;margin-bottom:5px"></div><div class="skeleton" style="height:11px;width:75%"></div></div>`;
+
 /* ── Boot ── */
 window.onload = () => {
   if (token && user) enterApp();
@@ -1129,9 +1134,9 @@ async function loadProfile() {
     <div class="profile-domain-card"><div class="skeleton" style="height:18px;width:120px;margin-bottom:10px"></div><div class="skeleton" style="height:10px;width:100%;margin-bottom:6px"></div><div class="skeleton" style="height:10px;width:60%"></div></div>
     <div class="profile-domain-card"><div class="skeleton" style="height:18px;width:100px;margin-bottom:10px"></div><div class="skeleton" style="height:10px;width:100%;margin-bottom:6px"></div><div class="skeleton" style="height:10px;width:60%"></div></div>
   `;
-  document.getElementById('stat-total-xp').textContent     = '—';
-  document.getElementById('stat-domains').textContent      = '—';
-  document.getElementById('stat-highest-level').textContent = '—';
+  document.getElementById('stat-total-xp').innerHTML      = '<div class="skeleton" style="height:28px;width:60px;border-radius:6px;margin-bottom:6px"></div>';
+  document.getElementById('stat-domains').innerHTML       = '<div class="skeleton" style="height:28px;width:40px;border-radius:6px;margin-bottom:6px"></div>';
+  document.getElementById('stat-highest-level').innerHTML = '<div class="skeleton" style="height:28px;width:40px;border-radius:6px;margin-bottom:6px"></div>';
 
   try {
     const progress = await api('GET', '/api/user/progress');
@@ -1199,6 +1204,7 @@ const DOMAIN_ICONS = {
 
 async function loadDomains() {
   const grid = document.getElementById('domains-grid');
+  grid.innerHTML = SK_DOMAIN_CARD + SK_DOMAIN_CARD + SK_DOMAIN_CARD;
   try {
     const domains = await api('GET', '/api/challenges/domains');
     if (!domains.length) {
@@ -1237,7 +1243,7 @@ async function openDomain(domain) {
 
 async function loadLevelPills(domain) {
   const pillsEl = document.getElementById('level-pills');
-  pillsEl.innerHTML = '';
+  pillsEl.innerHTML = SK_LEVEL_PILL + SK_LEVEL_PILL + SK_LEVEL_PILL;
   try {
     // returns Challenge[] — we only need .level from each
     const challenges = await api('GET', `/api/challenges?domain=${encodeURIComponent(domain)}`);
@@ -1456,7 +1462,16 @@ async function doSubmit() {
   btn.disabled = true;
   spinner.style.display = 'block';
   label.textContent = 'Evaluating…';
-  document.getElementById('result-card').classList.remove('show');
+
+  // Show skeleton result card while waiting for AI evaluation
+  document.getElementById('stars-grid').innerHTML = '<div class="skeleton" style="height:20px;width:193px;border-radius:6px"></div>';
+  document.getElementById('score-title').innerHTML = '<div class="skeleton" style="height:20px;width:130px;border-radius:6px"></div>';
+  document.getElementById('score-desc').innerHTML  = '<div class="skeleton" style="height:14px;width:200px;border-radius:6px;margin-top:8px"></div>';
+  document.getElementById('leveled-up-badge').style.display = 'none';
+  document.getElementById('dimensions-section').style.display = 'none';
+  document.getElementById('feedback-grid').innerHTML = SK_FEEDBACK_ITEM('70px') + SK_FEEDBACK_ITEM('50px');
+  document.getElementById('result-card').classList.add('show');
+  setTimeout(() => document.getElementById('result-card').scrollIntoView({ behavior: 'smooth', block: 'nearest' }), 100);
 
   try {
     const headers = { 'Content-Type': 'application/json' };
