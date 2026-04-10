@@ -25,22 +25,111 @@ public class PromptEvaluatorService {
     private final RestTemplate restTemplate = new RestTemplate();
     private final ObjectMapper objectMapper = new ObjectMapper();
 
+    // ─────────────────────────────────────────────
+    // CALL 1 SYSTEM PROMPT — Fact Extractor
+    // ─────────────────────────────────────────────
+    private static final String EXTRACTOR_SYSTEM_PROMPT = """
+        You are a precise prompt analyst. Your only job is to extract facts that are
+        EXPLICITLY present in the given prompt. Do not infer. Do not assume.
+        If something is not clearly written — mark it as null or false.
+
+        Return ONLY valid JSON, no markdown, no extra text:
+        {
+          "programming_language": "<exact language mentioned or null>",
+          "ai_role_defined": <true if 'You are a...' or similar persona assigned to AI, else false>,
+          "output_format_specified": <true if format like JSON/table/list/numbered is mentioned, else false>,
+          "return_type_specified": <true if return type or output value is mentioned, else false>,
+          "placeholders_used": <true if <PLACEHOLDER> style variables are present, else false>,
+          "length_constraint": "<exact length/word/line constraint mentioned or null>",
+          "audience_defined": "<target audience explicitly mentioned or null>",
+          "step_by_step_requested": <true if user asks for steps/walkthrough/reasoning, else false>,
+          "explicit_constraints": "<any other explicit constraints mentioned or null>"
+        }
+    """;
+
+    // ─────────────────────────────────────────────
+    // CALL 2 SYSTEM PROMPT — Evaluator
+    // ─────────────────────────────────────────────
     private static final String EVALUATOR_SYSTEM_PROMPT = """
-        You are an expert Prompt Engineering coach.
+        You are a Prompt Engineering coach evaluating prompts written by everyday users — not experts.
+        Be encouraging but honest. Help users grow, don't discourage them.
 
-        You will be given:
-        1. TASK: A real-world task the user is trying to solve
-        2. USER_PROMPT: The prompt the user wrote to solve that scenario(if the task requires some data like code snippet the user can just write "<CODE>" instead of the actual data)
-        3. EVALUATION_CRITERIA: A list of criteria to evaluate the user's prompt and the major things to be taken into account while evaluating the prompt.
+        You will receive:
+        - TASK: The real-world problem the user wants to solve
+        - USER_PROMPT: The prompt they wrote
+        - EVALUATION_CRITERIA: The single most important thing to check for this specific task
+        - FACT_SHEET: A verified JSON extract of what is explicitly present in the prompt
 
-        Evaluate the quality of the USER_PROMPT based on prompt engineering best practices
-        and return ONLY valid JSON (no markdown, no extra text) in this exact format:
+        CRITICAL — FACT SHEET IS GROUND TRUTH:
+        The FACT_SHEET was extracted by a dedicated analyzer. It is accurate.
+        You MUST NOT contradict it under any circumstances.
+        - If fact_sheet says programming_language = "Java" → language is NOT a flaw
+        - If fact_sheet says return_type_specified = true → return type is NOT a flaw
+        - If fact_sheet says placeholders_used = true → placeholder is a STRENGTH, never a flaw
+        - If fact_sheet says length_constraint is not null → length is NOT a flaw
+        Base ALL flaws and strengths strictly on the fact sheet. Do not re-analyze the original prompt.
+
+        IMPORTANT DISTINCTIONS:
+        - Role prompting = assigning a persona TO THE AI (e.g. "You are an expert in...").
+          "As a developer, explain X" is the user's perspective — NOT AI role prompting.
+        - Evaluate the INTENT behind criteria, not literal keyword matching.
+          e.g. "Think step-by-step" criteria is met if step_by_step_requested = true in fact sheet.
+        - If EVALUATION_CRITERIA is empty or missing → evaluate on general prompt engineering best practices.
+
+        EVALUATION_CRITERIA USAGE:
+        - The EVALUATION_CRITERIA defines the MOST IMPORTANT signal for this specific task.
+        - If criteria is NOT met → major flaw, cap the score at 65 regardless of other dimensions.
+        - If criteria IS met → strong foundation, but still evaluate all 5 dimensions normally.
+        - Meeting criteria alone does NOT guarantee a high score.
+        - Not meeting it does NOT mean ignoring everything else the user did well.
+
+        SCORING (regular users, not PE experts):
+        - 0-30:  Barely usable. No context, no constraints. (e.g. "explain BST")
+        - 31-50: Shows intent but missing most key elements.
+        - 51-65: Average user prompt. Some context or constraints but gaps remain. MOST COMMON RANGE.
+        - 66-80: Above average. Criteria met + role or context or format defined. Minor gaps only.
+        - 81-90: Strong. Criteria met + most elements well-covered and structured.
+        - 91-100: Near-perfect. Criteria met + role + context + specificity + constraints + format + edge cases.
+                  VERY RARE. Do not award unless truly exceptional.
+
+        SCORING CONSISTENCY RULE:
+        score = clarity + context + specificity + constraints + technique
+        Always sum dimensions first, then set that as the score. Never compute independently.
+
+        DIMENSION RUBRIC (0-20 each):
+        - clarity:     Is intent immediately obvious with zero ambiguity? (0=unclear, 20=perfect)
+        - context:     Is background/audience/domain defined? (0=none, 20=fully defined)
+        - specificity: Are instructions precise with no room to guess? (0=vague, 20=exact)
+        - constraints: Is format/length/tone explicitly stated? (0=none, 20=all defined)
+        - technique:   Are PE techniques used — role, examples, placeholders, chain-of-thought? (0=none, 20=multiple)
+
+        CALIBRATION:
+        "explain BST"                                         → score: 20
+        "explain BST to a 10th grader"                        → score: 52
+        "You are a CS teacher. Explain BST to a 10th grader
+         using an analogy. Keep it under 200 words, no code"  → score: 78
+        Prompt with role+context+format+constraints+edge cases → score: 92+
+
+        FEEDBACK RULES:
+        - Always list strengths first — be genuine, not generic.
+        - Max 3 flaws, framed as opportunities to improve, never as failures.
+        - If criteria was not met, it MUST appear as the first flaw.
+        - Explanation: 2-3 sentences — acknowledge effort, then guide improvement.
+
+        IMPROVED PROMPT RULES:
+        - If score < 85: return a genuinely improved prompt that adds what was missing.
+        - Must be meaningfully different — ADD new elements, do not just rephrase.
+        - If improved prompt looks 80%+ similar to original → rewrite until genuinely better.
+        - Keep all placeholders exactly as they appeared in the original.
+        - If score >= 85: return exactly "YOU ARE DOING GREAT AS USUAL"
+
+        Return ONLY valid JSON, no markdown, no text outside JSON:
         {
           "score": <integer 0-100>,
-          "strengths": ["<strength1>", "<strength2>"],
-          "flaws": ["<flaw1>", "<flaw2>"],
-          "improved_prompt": "<a significantly better version of the user's prompt>",
-          "explanation": "<2-3 sentence summary of the evaluation>",
+          "strengths": ["<specific strength>", ...],
+          "flaws": ["<flaw as opportunity, max 3>", ...],
+          "improved_prompt": "<improved version or YOU ARE DOING GREAT AS USUAL>",
+          "explanation": "<2-3 sentences>",
           "dimensions": {
             "clarity": <0-20>,
             "context": <0-20>,
@@ -49,25 +138,74 @@ public class PromptEvaluatorService {
             "technique": <0-20>
           }
         }
-        Consider giving a score >= 70 to prompts that satisfies evaluation criteria well (More detailed info the user provides higher the score), even if they are not perfect. The "improved_prompt" should be a better version of the user's prompt that addresses the flaws you identified.
-        Return improved prompt only if the original prompt has significant flaws, otherwise just return the String "YOU ARE DOING GREAT AS USUAL" as the value of "improved_prompt".
     """;
 
-//    public String evaluatePrompt(String scenario, String userPrompt, String idealPrompt) {
-//        return evaluatePrompt(scenario, userPrompt);
-//    }
-
-    public String evaluatePrompt(String task, String userPrompt) {
+    // PUBLIC ENTRY POINT
+    public String evaluatePrompt(String task, String userPrompt, String evaluationCriteria) {
         try {
-            HttpHeaders headers = new HttpHeaders();
-            headers.setContentType(MediaType.APPLICATION_JSON);
-            headers.setBearerAuth(apiKey);
+            String factSheet = extractFacts(userPrompt);
+            return evaluate(task, userPrompt, evaluationCriteria, factSheet);
+        } catch (Exception e) {
+            return fallbackJson(e.getMessage());
+        }
+    }
+
+    //CALL 1 SYSTEM PROMPT — Fact Sheet Extractor
+    public String extractFacts(String userPrompt) {
+        try {
+            String userMessage = "Extract facts from this prompt:\n\n" + userPrompt;
+
+            Map<String, Object> body = Map.of(
+                    "model", model,
+                    "messages", List.of(
+                            Map.of("role", "system", "content", EXTRACTOR_SYSTEM_PROMPT),
+                            Map.of("role", "user", "content", userMessage)
+                    ),
+                    "max_tokens", 300
+            );
+
+            String raw = callApi(body);
+            //validate it's parseable JSON and extract fact sheet
+            objectMapper.readTree(raw);
+            return raw;
+        } catch (Exception e) {
+            //handle parsing errors or API issues
+            return """
+                    {
+                        "programming_language": null,
+                        "ai_role_defined": false,
+                        "output_format_specified": false,
+                        "return_type_specified": false,
+                        "placeholders_used": false,
+                        "length_constraint": null,
+                        "audience_defined": null,
+                        "step_by_step_requested": false,
+                        "explicit_constraints": null
+                    }""";
+        }
+    }
+
+    //CALL 2 EVALUATE USING FACT SHEET
+    private String evaluate(String task, String userPrompt, String evaluationCriteria, String factSheet) {
+        try {
+            // handle empty criteria
+            if (evaluationCriteria == null || evaluationCriteria.isBlank()) {
+                evaluationCriteria = "Evaluate based on general prompt engineering best practices " +
+                        "— clarity, context, specificity, constraints, and technique.";
+            }
 
             String userMessage = String.format("""
-                SCENARIO: %s
+                TASK: %s
+
                 USER_PROMPT: %s
 
-                Evaluate the USER_PROMPT and return the JSON evaluation.""", task, userPrompt);
+                EVALUATION_CRITERIA: %s
+
+                FACT_SHEET (verified, treat as ground truth):
+                %s
+
+                Evaluate and return the JSON.""",
+                    task, userPrompt, evaluationCriteria, factSheet);
 
             Map<String, Object> body = Map.of(
                     "model", model,
@@ -75,17 +213,64 @@ public class PromptEvaluatorService {
                             Map.of("role", "system", "content", EVALUATOR_SYSTEM_PROMPT),
                             Map.of("role", "user", "content", userMessage)
                     ),
-                    "max_tokens", 800
+                    "max_tokens", 1500
             );
 
-            HttpEntity<Map<String, Object>> request = new HttpEntity<>(body, headers);
-            ResponseEntity<String> response = restTemplate.exchange(apiUrl, HttpMethod.POST, request, String.class);
-
-            JsonNode root = objectMapper.readTree(response.getBody());
-            return root.path("choices").get(0).path("message").path("content").asText();
+            return sanitize(callApi(body));
 
         } catch (Exception e) {
-            return "{\"score\": 0, \"strengths\": [], \"flaws\": [\"Evaluation failed\"], \"improved_prompt\": \"\", \"explanation\": \"" + e.getMessage() + "\"}";
+            return fallbackJson(e.getMessage());
         }
     }
+
+    private String callApi(Map<String, Object> body) throws Exception {
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
+        headers.setBearerAuth(apiKey);
+
+        HttpEntity<Map<String, Object>> request = new HttpEntity<>(body, headers);
+        ResponseEntity<String> response = restTemplate.exchange(
+                apiUrl, HttpMethod.POST, request, String.class);
+
+        JsonNode root = objectMapper.readTree(response.getBody());
+        return root.path("choices").get(0).path("message").path("content").asText();
+    }
+
+    //Sanitize JSON Response
+    private String sanitize(String raw) {
+        if (raw == null || raw.isBlank()) return fallbackJson("Empty response");
+
+        raw = raw.replaceAll("(?s)```json\\s*", "")
+                .replaceAll("(?s)```\\s*", "")
+                .trim();
+
+        try {
+            objectMapper.readTree(raw);
+            return raw;
+        } catch (Exception e) {
+            return fallbackJson("Malformed JSON: " + e.getMessage());
+        }
+    }
+
+    private String fallbackJson(String reason) {
+        return """
+            {
+              "score": 0,
+              "strengths": [],
+              "flaws": ["Evaluation could not be completed"],
+              "improved_prompt": "",
+              "explanation": "%s",
+              "dimensions": {
+                "clarity": 0,
+                "context": 0,
+                "specificity": 0,
+                "constraints": 0,
+                "technique": 0
+              }
+            }
+            """.formatted(reason.replace("\"", "'"));
+    }
+
+
+
 }
