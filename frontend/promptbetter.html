@@ -299,13 +299,16 @@ textarea.prompt-input::placeholder { color: var(--faint); }
 .result-card.show { display: block; }
 @keyframes fadeUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
 
-.score-row { display: flex; align-items: center; gap: 20px; margin-bottom: 22px; flex-wrap: wrap; }
-.score-ring { width: 90px; height: 90px; border-radius: 50%; display: flex; flex-direction: column; align-items: center; justify-content: center; border: 3px solid var(--border2); flex-shrink: 0; transition: border-color .4s; }
-.score-ring.high  { border-color: var(--success); box-shadow: 0 0 20px rgba(87,255,184,0.15); }
-.score-ring.mid   { border-color: var(--warning); box-shadow: 0 0 20px rgba(255,184,87,0.15); }
-.score-ring.low   { border-color: var(--danger);  box-shadow: 0 0 20px rgba(255,107,107,0.15); }
-.score-num { font-size: 30px; font-weight: 700; font-family: var(--mono); line-height: 1; }
-.score-denom { font-size: 12px; color: var(--muted); margin-top: 2px; font-family: var(--mono); }
+.score-row { display: flex; align-items: flex-start; gap: 20px; margin-bottom: 22px; flex-wrap: wrap; }
+
+/* tokens-optimised star rating */
+.tokens-block { flex-shrink: 0; }
+.tokens-label { font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.1em; color: var(--faint); margin-bottom: 8px; font-family: var(--mono); }
+.stars-grid { display: flex; flex-wrap: wrap; gap: 3px; width: 193px; /* (17px + 3px) × 10 − 3px */ }
+.star { font-size: 17px; color: var(--border2); line-height: 1; display: inline-block; }
+.star.filled { color: var(--accent); }
+@keyframes starPop { 0% { transform: scale(0.3); opacity: 0.2; } 60% { transform: scale(1.4); } 100% { transform: scale(1); opacity: 1; } }
+.star.pop { animation: starPop .35s cubic-bezier(.22,1,.36,1) forwards; }
 
 .score-meta h3 { font-family: var(--serif); font-size: 20px; font-weight: 700; margin-bottom: 4px; letter-spacing: -0.01em; }
 .score-meta p { font-size: 15px; color: var(--muted); font-weight: 300; }
@@ -956,9 +959,9 @@ textarea.prompt-input::placeholder { color: var(--faint); }
           <div class="result-card" id="result-card">
 
             <div class="score-row">
-              <div class="score-ring" id="score-ring">
-                <div class="score-num" id="score-num">–</div>
-                <div class="score-denom">/ 100</div>
+              <div class="tokens-block">
+                <div class="tokens-label">Tokens Optimised</div>
+                <div class="stars-grid" id="stars-grid"></div>
               </div>
               <div class="score-meta">
                 <h3 id="score-title">–</h3>
@@ -1565,7 +1568,7 @@ async function loadChallenge(domain, level, signal) {
         score: prevSubmission.score,
         feedback: prevSubmission.feedback,
         leveledUp: false  // Don't show level up for previous submissions
-      });
+      }, false);
 
       // Show a quiet inline note instead of a toast (avoids repeated noise on revisit)
       const prevNote = document.getElementById('prev-submission-note');
@@ -1693,7 +1696,7 @@ async function doSubmit() {
 
     // Save the submitted prompt to prevent duplicate submissions
     lastSubmittedPrompt = prompt;
-    renderResult(data);
+    renderResult(data, true);
   } catch (e) {
     showToast(e.message || 'Submission failed', 'error');
   } finally {
@@ -1735,14 +1738,30 @@ function startCooldown(seconds) {
   }, 1000);
 }
 
-function renderResult(result) {
+function renderResult(result, animate) {
   const score = result.score ?? 0;
   const fb    = result.feedback || {};
 
-  // Score ring colour
-  const ring = document.getElementById('score-ring');
-  ring.className = 'score-ring ' + (score >= 70 ? 'high' : score >= 40 ? 'mid' : 'low');
-  document.getElementById('score-num').textContent = score;
+  // 20-star "Tokens Optimised" display (2 rows × 10)
+  const starsGrid  = document.getElementById('stars-grid');
+  const filledCount = Math.floor(score / 5);   // 100 pts ÷ 20 stars = 5 pts each; floor so each star = full 5-pt increment
+  starsGrid.innerHTML = Array.from({length: 20}, (_, i) =>
+    `<span class="star" id="star-${i}">★</span>`
+  ).join('');
+
+  if (animate) {
+    // Cascade fill: one star every 60 ms
+    starsGrid.querySelectorAll('.star').forEach((star, i) => {
+      if (i < filledCount) {
+        setTimeout(() => star.classList.add('filled', 'pop'), i * 60);
+      }
+    });
+  } else {
+    // Instant fill for previously-loaded results
+    starsGrid.querySelectorAll('.star').forEach((star, i) => {
+      if (i < filledCount) star.classList.add('filled');
+    });
+  }
 
   // Title / desc
   let title, desc;
