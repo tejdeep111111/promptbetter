@@ -159,6 +159,9 @@ a { color: inherit; text-decoration: none; }
 @media (max-width: 860px) { .mobile-bar { display: flex; } }
 .mobile-logo { font-family: var(--serif); font-size: 17px; font-weight: 700; }
 .mobile-logo span { color: var(--accent); }
+.mobile-nav { display: flex; align-items: center; gap: 4px; }
+.mobile-nav-btn { font-size: 11px; color: var(--muted); background: none; border: none; padding: 6px 10px; border-radius: 6px; cursor: pointer; font-family: var(--sans); }
+.mobile-nav-btn:hover { background: var(--bg3); color: var(--text); }
 .mobile-logout { font-size: 12px; color: var(--muted); background: var(--bg3); border: 1px solid var(--border2); border-radius: 6px; padding: 6px 12px; }
 
 /* ════════════════════════
@@ -279,7 +282,8 @@ textarea.prompt-input {
 textarea.prompt-input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(184,255,87,0.06); }
 textarea.prompt-input::placeholder { color: var(--faint); }
 
-.submit-row { display: flex; justify-content: flex-end; margin-top: 14px; }
+.submit-row { display: flex; align-items: center; justify-content: flex-end; gap: 12px; margin-top: 14px; }
+.prev-submission-note { font-size: 11px; color: var(--faint); font-family: var(--mono); }
 .btn-submit { background: var(--accent); color: #0a0a0f; font-size: 13px; font-weight: 600; padding: 11px 28px; border-radius: var(--r); display: flex; align-items: center; gap: 8px; transition: background .15s, transform .1s; font-family: var(--serif); letter-spacing: 0.01em; }
 .btn-submit:hover { background: var(--accent2); }
 .btn-submit:active { transform: scale(0.98); }
@@ -750,6 +754,11 @@ textarea.prompt-input::placeholder { color: var(--faint); }
 
       <div class="mobile-bar">
         <div class="mobile-logo">Prompt<span>Better</span></div>
+        <div class="mobile-nav">
+          <button class="mobile-nav-btn" onclick="showView('view-home')">Domains</button>
+          <button class="mobile-nav-btn" onclick="showView('view-llm')">How LLMs Work</button>
+          <button class="mobile-nav-btn" onclick="showView('view-profile'); loadProfile()">Profile</button>
+        </div>
         <button class="mobile-logout" onclick="doLogout()">Sign out</button>
       </div>
 
@@ -836,6 +845,7 @@ textarea.prompt-input::placeholder { color: var(--faint); }
                 <div class="spinner" id="submit-spinner"></div>
                 <span id="submit-label">Submit prompt</span>
               </button>
+              <span class="prev-submission-note" id="prev-submission-note" style="display:none">↺ Previous submission loaded</span>
             </div>
           </div>
 
@@ -994,7 +1004,7 @@ textarea.prompt-input::placeholder { color: var(--faint); }
 
 <script>
 /* ── Config ── */
-const API = 'http://localhost:8080';
+const API = window.API_BASE || '';
 
 /* ── State ── */
 let token  = '';
@@ -1004,6 +1014,7 @@ try { user  = JSON.parse(localStorage.getItem('pb_user') || 'null'); } catch(e) 
 let currentDomain      = '';
 let currentLevel       = 1;
 let currentChallengeId = null;
+let challengeAbortCtrl = null;
 
 /* ── Rate Limiting State ── */
 let cooldownSeconds = 0;
@@ -1023,6 +1034,7 @@ window.onload = () => {
   if (token && user) enterApp();
   document.getElementById('login-password').addEventListener('keydown', e => { if (e.key === 'Enter') doLogin(); });
   document.getElementById('reg-password').addEventListener('keydown',   e => { if (e.key === 'Enter') doRegister(); });
+  document.getElementById('prompt-input').addEventListener('keydown',   e => { if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') { e.preventDefault(); doSubmit(); } });
 };
 
 /* ── Page / view ── */
@@ -1165,7 +1177,7 @@ async function loadProfile() {
           <div class="profile-domain-top">
             <div class="profile-domain-name">
               <span class="profile-domain-icon">${icon}</span>
-              ${p.domain}
+              ${escHtml(p.domain)}
             </div>
             <div class="profile-level-badge">Lvl ${p.currentLevel || 1}</div>
           </div>
@@ -1212,12 +1224,15 @@ async function loadDomains() {
       return;
     }
     grid.innerHTML = domains.map(d => `
-      <div class="domain-card" onclick="openDomain('${d}')">
+      <div class="domain-card" data-domain="${escHtml(d)}">
         <div class="domain-icon">${DOMAIN_ICONS[d.toLowerCase()] || '◆'}</div>
-        <div class="domain-name">${d}</div>
+        <div class="domain-name">${escHtml(d)}</div>
         <div class="domain-sub">Click to start practising</div>
       </div>
     `).join('');
+    grid.querySelectorAll('.domain-card').forEach(card => {
+      card.addEventListener('click', () => openDomain(card.dataset.domain));
+    });
   } catch (e) {
     grid.innerHTML = `<div class="empty-state"><div class="empty-icon">⚠</div><p>${e.message}</p></div>`;
   }
@@ -1233,31 +1248,38 @@ async function loadDomains() {
      → always unwrap [0]
 ══════════════════════════════════ */
 async function openDomain(domain) {
+  const signal = resetChallengeAbortCtrl();
   currentDomain = domain;
   currentLevel  = 1;
   document.getElementById('ch-domain-label').textContent = domain;
   showView('view-challenge');
-  await loadLevelPills(domain);
-  await loadChallenge(domain, 1);
+  await loadLevelPills(domain, signal);
+  await loadChallenge(domain, 1, signal);
 }
 
-async function loadLevelPills(domain) {
+async function loadLevelPills(domain, signal) {
   const pillsEl = document.getElementById('level-pills');
   pillsEl.innerHTML = SK_LEVEL_PILL + SK_LEVEL_PILL + SK_LEVEL_PILL;
   try {
     // returns Challenge[] — we only need .level from each
-    const challenges = await api('GET', `/api/challenges?domain=${encodeURIComponent(domain)}`);
+    const challenges = await api('GET', `/api/challenges?domain=${encodeURIComponent(domain)}`, null, true, signal);
     const levels = [...new Set(challenges.map(c => c.level))].sort((a, b) => a - b);
     pillsEl.innerHTML = levels.map(l => `
-      <div class="level-pill ${l === 1 ? 'active' : ''}" id="pill-${l}" onclick="switchLevel(${l})">Level ${l}</div>
+      <div class="level-pill ${l === currentLevel ? 'active' : ''}" id="pill-${l}" data-level="${l}">Level ${l}</div>
     `).join('');
-  } catch (_) {}
+    pillsEl.querySelectorAll('.level-pill').forEach(pill => {
+      pill.addEventListener('click', () => switchLevel(Number(pill.dataset.level)));
+    });
+  } catch (e) {
+    if (e.name !== 'AbortError') console.warn('loadLevelPills error:', e);
+  }
 }
 
 async function switchLevel(level) {
   // Skip if already on this level
   if (currentLevel === level) return;
 
+  const signal = resetChallengeAbortCtrl();
   currentLevel = level;
   document.querySelectorAll('.level-pill').forEach(p => p.classList.remove('active'));
   const pill = document.getElementById(`pill-${level}`);
@@ -1266,38 +1288,38 @@ async function switchLevel(level) {
   document.getElementById('char-count').textContent = '0 chars';
   document.getElementById('result-card').classList.remove('show');
   lastSubmittedPrompt = '';  // Reset on level change
-  await loadChallenge(currentDomain, level);
+  await loadChallenge(currentDomain, level, signal);
+}
+
+/* ── Cancel any in-flight challenge request and return a fresh signal ── */
+function resetChallengeAbortCtrl() {
+  if (challengeAbortCtrl) challengeAbortCtrl.abort();
+  challengeAbortCtrl = new AbortController();
+  return challengeAbortCtrl.signal;
 }
 
 /* ── Fetch previous submission ── */
 async function loadPreviousSubmission(challengeId) {
   try {
-    const res = await fetch(`${API}/api/submissions/latest?challengeId=${challengeId}`, {
-      headers: { 'Authorization': `Bearer ${token}` }
-    });
-
-    if (res.status === 204) {
-      // No previous submission
-      return null;
-    }
-
-    if (!res.ok) return null;
-
-    return await res.json();
+    const data = await api('GET', `/api/submissions/latest?challengeId=${challengeId}`);
+    // api() returns {} for 204 No Content (no body) — treat as no submission
+    return (data && data.id !== undefined) ? data : null;
   } catch (e) {
+    // Any error (including session expiry) — no previous submission available
     console.log('No previous submission found');
     return null;
   }
 }
 
-async function loadChallenge(domain, level) {
+async function loadChallenge(domain, level, signal) {
   document.getElementById('ch-loading').style.display = 'block';
   document.getElementById('ch-content').style.display = 'none';
   document.getElementById('ch-empty').style.display   = 'none';
   document.getElementById('result-card').classList.remove('show');
+  document.getElementById('submit-btn').disabled = true;
 
   try {
-    const res = await api('GET', `/api/challenges/current?domain=${encodeURIComponent(domain)}&level=${level}`);
+    const res = await api('GET', `/api/challenges/current?domain=${encodeURIComponent(domain)}&level=${level}`, null, true, signal);
 
     // ChallengeService.getChallengeByDomainAndLevel returns Collections.singletonList(challenge)
     // so the response is always a JSON array — unwrap index 0
@@ -1385,16 +1407,26 @@ async function loadChallenge(domain, level) {
         leveledUp: false  // Don't show level up for previous submissions
       }, false);
 
-      showToast('Showing your previous submission', 'success');
+      // Show a quiet inline note instead of a toast (avoids repeated noise on revisit)
+      const prevNote = document.getElementById('prev-submission-note');
+      if (prevNote) prevNote.style.display = '';
     } else {
       lastSubmittedPrompt = '';  // Reset if no previous submission
+      const prevNote = document.getElementById('prev-submission-note');
+      if (prevNote) prevNote.style.display = 'none';
     }
 
   } catch (e) {
+    if (e.name === 'AbortError') return;  // Request was superseded; ignore silently
     document.getElementById('ch-loading').style.display = 'none';
     document.getElementById('ch-empty').style.display   = 'block';
     document.getElementById('ch-empty-msg').textContent = e.message || 'Failed to load challenge.';
     console.error('loadChallenge error:', e);
+  } finally {
+    // Only re-enable if this request was not superseded by a newer one (signal not aborted)
+    if (cooldownSeconds <= 0 && (!signal || !signal.aborted)) {
+      document.getElementById('submit-btn').disabled = false;
+    }
   }
 }
 
@@ -1640,10 +1672,12 @@ function makeFeedbackItem(label, val, cls) {
 }
 
 /* ── API helper ── */
-async function api(method, path, body = null, withAuth = true) {
+async function api(method, path, body = null, withAuth = true, signal = null) {
   const headers = { 'Content-Type': 'application/json' };
   if (withAuth && token) headers['Authorization'] = `Bearer ${token}`;
-  const res  = await fetch(API + path, { method, headers, body: body ? JSON.stringify(body) : undefined });
+  const fetchOpts = { method, headers, body: body ? JSON.stringify(body) : undefined };
+  if (signal) fetchOpts.signal = signal;
+  const res  = await fetch(API + path, fetchOpts);
   const data = await res.json().catch(() => ({}));
   if (!res.ok) {
     if ((res.status === 401 || res.status === 403) && withAuth) {
@@ -1708,7 +1742,7 @@ function parseGlossaryTerms(text) {
 
     if (!t) {
       // Term not found in glossary, return plain text without brackets
-      return termKey;
+      return escHtml(termKey);
     }
 
     return `<span class="term" tabindex="0">${escHtml(t.display)}<span class="term-tooltip"><span class="term-title">${escHtml(t.display)}</span>${escHtml(t.definition)}</span></span>`;
@@ -1755,6 +1789,28 @@ document.addEventListener('mouseenter', (e) => {
 }, true);
 
 document.addEventListener('mouseleave', (e) => {
+  if (e.target.classList && e.target.classList.contains('term')) {
+    const tooltip = e.target.querySelector('.term-tooltip');
+    if (tooltip) {
+      tooltip.style.opacity = '0';
+      tooltip.style.visibility = 'hidden';
+    }
+  }
+}, true);
+
+// Keyboard accessibility for glossary tooltips
+document.addEventListener('focusin', (e) => {
+  if (e.target.classList && e.target.classList.contains('term')) {
+    const tooltip = e.target.querySelector('.term-tooltip');
+    if (tooltip) {
+      tooltip.style.opacity = '1';
+      tooltip.style.visibility = 'visible';
+      positionTooltip(e.target, tooltip);
+    }
+  }
+}, true);
+
+document.addEventListener('focusout', (e) => {
   if (e.target.classList && e.target.classList.contains('term')) {
     const tooltip = e.target.querySelector('.term-tooltip');
     if (tooltip) {
