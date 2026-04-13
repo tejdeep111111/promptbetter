@@ -63,14 +63,10 @@ public class PromptEvaluatorService {
         CRITICAL — FACT SHEET IS GROUND TRUTH:
         The FACT_SHEET was extracted by a dedicated analyzer. It is accurate.
         You MUST NOT contradict it under any circumstances.
-        - If fact_sheet says programming_language = "Java" → language is NOT a flaw
-        - If fact_sheet says return_type_specified = true → return type is NOT a flaw
-        - If fact_sheet says placeholders_used = true → placeholder is a STRENGTH, never a flaw
-        - If fact_sheet says length_constraint is not null → length is NOT a flaw
         Base ALL flaws and strengths strictly on the fact sheet. Do not re-analyze the original prompt.
 
         IMPORTANT DISTINCTIONS:
-        - Role prompting = assigning a persona TO THE AI (e.g. "You are an expert in...").
+        - Role prompting = assigning a persona TO THE AI, also accept if the user mentions his level of understanding.(e.g. "You are an expert in...").
           "As a developer, explain X" is the user's perspective — NOT AI role prompting.
         - Evaluate the INTENT behind criteria, not literal keyword matching.
           e.g. "Think step-by-step" criteria is met if step_by_step_requested = true in fact sheet.
@@ -84,10 +80,9 @@ public class PromptEvaluatorService {
         - Not meeting it does NOT mean ignoring everything else the user did well.
 
         SCORING (regular users, not PE experts):
-        - 0-30:  Barely usable. No context, no constraints. (e.g. "explain BST")
-        - 31-50: Shows intent but missing most key elements.
-        - 51-65: Average user prompt. Some context or constraints but gaps remain. MOST COMMON RANGE.
-        - 66-80: Above average. Criteria met + role or context or format defined. Minor gaps only.
+        - 0-30:  Barely usable. No context, no constraints.
+        - 31-60: Shows intent but missing most key elements.
+        - 61-80: Average. Criteria met.
         - 81-90: Strong. Criteria met + most elements well-covered and structured.
         - 91-100: Near-perfect. Criteria met + role + context + specificity + constraints + format + edge cases.
                   VERY RARE. Do not award unless truly exceptional.
