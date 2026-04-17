@@ -2,6 +2,8 @@ package com.promptbetter.evaluation;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
@@ -17,6 +19,7 @@ import java.util.Map;
 
 @Service
 public class PromptCoachService {
+    private static final Logger log = LoggerFactory.getLogger(PromptCoachService.class);
 
     @Value("${api.key}")
     private String apiKey;
@@ -86,7 +89,8 @@ public class PromptCoachService {
             PromptCoachFeedback parsed = objectMapper.readValue(sanitize(raw), PromptCoachFeedback.class);
             parsed.setDimensions(normalizeDimensions(parsed.getDimensions()));
             return parsed;
-        } catch (Exception ignored) {
+        } catch (Exception e) {
+            log.warn("Coach feedback generation failed, returning fallback feedback", e);
             PromptCoachFeedback fallback = new PromptCoachFeedback();
             fallback.setFlaws(List.of("Evaluation feedback is temporarily unavailable."));
             fallback.setExplanation("Your submission was scored with deterministic backend rules. Please try again for richer coaching.");

@@ -32,7 +32,12 @@ public class SubmissionService {
                 .orElseThrow(() -> new RuntimeException("Challenge not found"));
 
         PromptEvaluationResponse evaluationResponse = evaluationOrchestrator.evaluate(challenge, prompt);
-        String feedbackJson = objectMapper.writeValueAsString(evaluationResponse);
+        String feedbackJson;
+        try {
+            feedbackJson = objectMapper.writeValueAsString(evaluationResponse);
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to serialize evaluation response", e);
+        }
         int score = evaluationResponse.getFinalScore();
 
         // Save submission and update user progress

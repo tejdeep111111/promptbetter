@@ -2,6 +2,8 @@ package com.promptbetter.evaluation;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.promptbetter.model.Challenge;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
@@ -10,6 +12,7 @@ import java.util.Map;
 
 @Service
 public class PromptEvaluationOrchestrator {
+    private static final Logger log = LoggerFactory.getLogger(PromptEvaluationOrchestrator.class);
 
     private final PromptFactExtractorService factExtractorService;
     private final TeachingPointScorer teachingPointScorer;
@@ -38,6 +41,11 @@ public class PromptEvaluationOrchestrator {
     public PromptEvaluationResponse evaluate(Challenge challenge, String userPrompt) {
         FactSheet factSheet = factExtractorService.extractFacts(userPrompt);
         TeachingPointRule rule = parseRule(challenge);
+        if (rule == null) {
+            rule = new TeachingPointRule();
+            rule.setTeachingPoint(challenge.getAiEvaluationGuide());
+            rule.setMustHave(List.of());
+        }
 
         TeachingPointScorer.TeachingPointResult teachingResult = teachingPointScorer.score(rule, factSheet);
         PromptCoachFeedback coachFeedback = promptCoachService.generateFeedback(
@@ -80,7 +88,8 @@ public class PromptEvaluationOrchestrator {
                 return fallback;
             }
             return objectMapper.readValue(raw, TeachingPointRule.class);
-        } catch (Exception ignored) {
+        } catch (Exception e) {
+            log.warn("Invalid teaching_point_rule_json for challenge id={}, using fallback teaching point", challenge.getId(), e);
             TeachingPointRule fallback = new TeachingPointRule();
             fallback.setTeachingPoint(challenge.getAiEvaluationGuide());
             fallback.setMustHave(List.of());

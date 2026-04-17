@@ -2,6 +2,8 @@ package com.promptbetter.evaluation;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
@@ -16,6 +18,7 @@ import java.util.Map;
 
 @Service
 public class PromptFactExtractorService {
+    private static final Logger log = LoggerFactory.getLogger(PromptFactExtractorService.class);
 
     @Value("${api.key}")
     private String apiKey;
@@ -64,7 +67,8 @@ public class PromptFactExtractorService {
 
             String raw = callApi(body);
             return objectMapper.readValue(sanitize(raw), FactSheet.class);
-        } catch (Exception ignored) {
+        } catch (Exception e) {
+            log.warn("Fact extraction failed, using empty fact sheet fallback", e);
             return new FactSheet();
         }
     }

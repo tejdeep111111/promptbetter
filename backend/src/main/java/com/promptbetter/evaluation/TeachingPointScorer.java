@@ -36,13 +36,12 @@ public class TeachingPointScorer {
         String operator = condition.getOperator().toUpperCase(Locale.ROOT);
 
         return switch (operator) {
-            case "NOT_NULL" -> value instanceof String str && str != null && !str.isBlank();
+            case "NOT_NULL" -> value instanceof String str && !str.isBlank();
             case "BOOLEAN_TRUE" -> value instanceof Boolean bool && bool;
             case "BOOLEAN_FALSE" -> value instanceof Boolean bool && !bool;
             case "EQUALS" -> value != null && String.valueOf(value).equalsIgnoreCase(condition.getValue());
             case "CONTAINS_TEXT" -> value instanceof String str
                     && condition.getValue() != null
-                    && str != null
                     && str.toLowerCase(Locale.ROOT).contains(condition.getValue().toLowerCase(Locale.ROOT));
             default -> false;
         };
