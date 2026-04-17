@@ -33,6 +33,18 @@ INSERT IGNORE INTO `challenges` (id, level, ai_evaluation_guide, domain, hardnes
 (32,5,'Does the user ask for benefit-led headlines rather than feature descriptions?','Marketing','Hard','The best headlines sell the outcome, not the tool — ask the AI to lead with the user''s gain. Clear [[instruction]]s shape the output.','You are redesigning a SaaS landing page and need a headline that converts visitors.','Write a Landing Page Headline','Benefit vs Feature',NULL),
 (33,6,'Does the user specify the output format (table, list), posting frequency, and content pillars?','Marketing','Hard','Define the [[output-format]] explicitly — column names, rows, and number of entries. Structured [[output-format]] prevents rambling.','You are a solo founder and need a one-month content calendar for LinkedIn to build your personal brand.','Build a Content Calendar','Structured Output',NULL);
 
+UPDATE challenges
+SET teaching_point_rule_json = '{"teaching_point":"Specify target programming language","must_have":[{"fact":"programming_language","operator":"NOT_NULL"}],"apply_hard_cap_when_missed":true,"hard_cap_when_missed":60}'
+WHERE id = 1;
+
+UPDATE challenges
+SET teaching_point_rule_json = '{"teaching_point":"Define the audience or experience level","must_have":[{"fact":"audience_defined","operator":"NOT_NULL"}],"apply_hard_cap_when_missed":true,"hard_cap_when_missed":60}'
+WHERE id = 2;
+
+UPDATE challenges
+SET teaching_point_rule_json = '{"teaching_point":"Specify output format","must_have":[{"fact":"output_format_specified","operator":"BOOLEAN_TRUE"}],"apply_hard_cap_when_missed":true,"hard_cap_when_missed":60}'
+WHERE id = 10;
+
 INSERT IGNORE INTO `glossary_terms` (id, term_key, term_display, definition, category, created_at) VALUES
 (48,'hallucination','Hallucination','When an AI generates false or fabricated information that sounds plausible but is not factually accurate. Caused by vague prompts or lack of grounding.','concept','2026-04-06 19:07:26'),
 (49,'prompt','Prompt','The input text or instruction you give to an AI model to guide its response.','concept','2026-04-06 19:07:26'),

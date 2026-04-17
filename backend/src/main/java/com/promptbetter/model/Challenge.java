@@ -31,6 +31,9 @@ public class Challenge {
     @Column(columnDefinition = "TEXT")
     private String aiEvaluationGuide;
 
+    @Column(name = "teaching_point_rule_json", columnDefinition = "TEXT")
+    private String teachingPointRuleJson;
+
     @Column(nullable = true)
     private String constraintAsString;
 

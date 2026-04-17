@@ -2,6 +2,8 @@ package com.promptbetter.service;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.promptbetter.evaluation.PromptEvaluationOrchestrator;
+import com.promptbetter.evaluation.PromptEvaluationResponse;
 import com.promptbetter.model.Challenge;
 import com.promptbetter.model.Submission;
 import com.promptbetter.model.UserProgress;
@@ -21,7 +23,7 @@ public class SubmissionService {
     private final SubmissionRepository submissionRepository;
     private final ChallengeRepository challengeRepository;
     private final UserProgressRepository userProgressRepository;
-    private final PromptEvaluatorService evaluatorService;
+    private final PromptEvaluationOrchestrator evaluationOrchestrator;
 
     private final ObjectMapper objectMapper = new ObjectMapper();
 
@@ -29,19 +31,9 @@ public class SubmissionService {
         Challenge challenge = challengeRepository.findById(challengeId)
                 .orElseThrow(() -> new RuntimeException("Challenge not found"));
 
-        // Before calling evaluatePrompt, handle empty criteria
-        String criteria = challenge.getAiEvaluationGuide();
-        if (criteria == null || criteria.isBlank()) {
-            criteria = "Evaluate based on general prompt engineering best practices — clarity, context, specificity, constraints, and technique.";
-        }
-        String feedbackJson = evaluatorService.evaluatePrompt(challenge.getTask(), prompt, challenge.getAiEvaluationGuide());
-
-        int score = 0;
-        try {
-            JsonNode feedback = objectMapper.readTree(feedbackJson);
-            score = feedback.get("score").asInt(0);
-        } catch (Exception ignored) {
-        }
+        PromptEvaluationResponse evaluationResponse = evaluationOrchestrator.evaluate(challenge, prompt);
+        String feedbackJson = objectMapper.writeValueAsString(evaluationResponse);
+        int score = evaluationResponse.getFinalScore();
 
         // Save submission and update user progress
         Submission submission = new Submission();

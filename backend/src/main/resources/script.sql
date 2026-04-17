@@ -14,6 +14,7 @@
 --     id BIGINT AUTO_INCREMENT PRIMARY KEY,
 --     domain VARCHAR(100) NOT NULL,
 --     level INT NOT NULL,
+--     teaching_point_rule_json TEXT NULL,
 --     title VARCHAR(200) NOT NULL,
 --     scenario TEXT NOT NULL,
 --     ideal_prompt TEXT NOT NULL,
