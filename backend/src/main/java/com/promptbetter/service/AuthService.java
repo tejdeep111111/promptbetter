@@ -2,6 +2,7 @@ package com.promptbetter.service;
 
 import com.promptbetter.model.User;
 import com.promptbetter.repository.UserRepository;
+import com.promptbetter.util.EmailValidator;
 import com.promptbetter.util.JwtUtil;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -15,12 +16,20 @@ public class AuthService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtUtil jwtUtil;
+    private final EmailValidator emailValidator;
 
 
     public Map<String, Object> register(String name, String email, String password) {
         if (name == null || name.isBlank() || email == null || email.isBlank() || password == null || password.isBlank()) {
             throw new IllegalArgumentException("Name, email, and password are required");
         }
+
+        // Validate email format + DNS MX record
+        String emailError = emailValidator.validate(email);
+        if (emailError != null) {
+            throw new IllegalArgumentException(emailError);
+        }
+
         if (userRepository.existsByEmail(email)) {
             throw new RuntimeException("Email already in use");
         }

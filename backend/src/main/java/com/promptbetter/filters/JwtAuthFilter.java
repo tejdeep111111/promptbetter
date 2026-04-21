@@ -16,6 +16,9 @@ import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
 
+
+//This filter intercepts every HTTP request and checks for a valid JWT in the
+// Authorization header. If valid, it sets up the Spring Security context.
 @Component
 @RequiredArgsConstructor
 public class JwtAuthFilter extends OncePerRequestFilter {

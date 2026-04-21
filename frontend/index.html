@@ -147,7 +147,7 @@ a { color: inherit; text-decoration: none; }
 .nav-item { display: flex; align-items: center; gap: 10px; padding: 10px 14px; border-radius: var(--r); font-size: 15px; color: var(--muted); cursor: pointer; transition: background .15s, color .15s; }
 .nav-item:hover { background: var(--bg3); color: var(--text); }
 .nav-item.active { background: var(--accent3); color: var(--accent); border: 1px solid rgba(184,255,87,0.15); }
-.nav-icon { font-size: 16px; width: 20px; text-align: center; flex-shrink: 0; }
+.nav-icon { width: 20px; display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; }
 
 .sidebar-footer { padding: 10px 8px; border-top: 1px solid var(--border); }
 .logout-btn { width: 100%; display: flex; align-items: center; gap: 10px; padding: 9px 12px; border-radius: var(--r); font-size: 13px; color: var(--muted); transition: background .15s, color .15s; text-align: left; }
@@ -162,13 +162,16 @@ a { color: inherit; text-decoration: none; }
 .mobile-nav { display: flex; align-items: center; gap: 4px; }
 .mobile-nav-btn { font-size: 11px; color: var(--muted); background: none; border: none; padding: 6px 10px; border-radius: 6px; cursor: pointer; font-family: var(--sans); }
 .mobile-nav-btn:hover { background: var(--bg3); color: var(--text); }
+/* mobile nav active state */
+.mobile-nav-btn.active { background: var(--accent3); color: var(--accent); border: 1px solid rgba(184,255,87,0.2); }
 .mobile-logout { font-size: 12px; color: var(--muted); background: var(--bg3); border: 1px solid var(--border2); border-radius: 6px; padding: 6px 12px; }
 
 /* ════════════════════════
    VIEWS
 ════════════════════════ */
-.view { display: none; padding: 36px 40px; }
+.view { display: none; padding: 36px 40px; animation: viewFadeIn .3s ease both; }
 .view.active { display: block; }
+@keyframes viewFadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
 @media (max-width: 640px) { .view { padding: 24px 16px; } }
 
 /* view header */
@@ -187,9 +190,16 @@ a { color: inherit; text-decoration: none; }
 .domain-card::after { content: ''; position: absolute; inset: 0; background: linear-gradient(135deg, rgba(184,255,87,0.04) 0%, transparent 60%); opacity: 0; transition: opacity .2s; }
 .domain-card:hover { border-color: rgba(184,255,87,0.35); transform: translateY(-2px); background: var(--bg3); }
 .domain-card:hover::after { opacity: 1; }
-.domain-icon { font-size: 30px; margin-bottom: 12px; }
+.domain-icon { margin-bottom: 12px; color: var(--accent); width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; }
+.domain-icon svg { width: 28px; height: 28px; }
 .domain-name { font-size: 16px; font-weight: 600; font-family: var(--serif); margin-bottom: 4px; text-transform: capitalize; letter-spacing: -0.01em; }
-.domain-sub { font-size: 14px; color: var(--muted); }
+.domain-sub { font-size: 13px; color: var(--faint); line-height: 1.5; }
+.domain-card-meta { display: flex; align-items: center; gap: 8px; margin-top: 10px; }
+.domain-challenge-count {
+  font-size: 11px; font-family: var(--mono); color: var(--faint);
+  background: var(--bg4); border: 1px solid var(--border); border-radius: 12px;
+  padding: 2px 9px; display: inline-flex; align-items: center; gap: 4px;
+}
 
 /* challenge header */
 .ch-header { display: flex; align-items: center; gap: 12px; margin-bottom: 24px; flex-wrap: wrap; }
@@ -274,6 +284,10 @@ a { color: inherit; text-decoration: none; }
 .prompt-label-row span { font-size: 13px; font-weight: 500; }
 .char-count { font-size: 11px; color: var(--faint); font-family: var(--mono); }
 
+/* shortcut hint */
+.shortcut-hint { font-size: 11px; color: var(--faint); font-family: var(--mono); display: none; }
+@media (min-width: 768px) { .shortcut-hint { display: inline; } }
+
 textarea.prompt-input {
   width: 100%; min-height: 160px; background: var(--bg3); border: 1px solid var(--border2);
   border-radius: var(--r); padding: 16px; font-size: 16px; line-height: 1.65; color: var(--text);
@@ -357,6 +371,47 @@ textarea.prompt-input::placeholder { color: var(--faint); }
 .toast.error   { border-color: rgba(255,107,107,0.35); color: var(--danger); }
 
 /* ════════════════════════
+   SAVE TOKENS PAGE
+════════════════════════ */
+.tk-card {
+  background: var(--bg2); border: 1px solid var(--border);
+  border-radius: var(--r2); padding: 20px;
+  display: flex; gap: 14px; align-items: flex-start;
+  transition: border-color .2s, transform .15s;
+}
+.tk-card:hover { border-color: rgba(184,255,87,0.25); transform: translateY(-2px); }
+.tk-icon { font-size: 22px; flex-shrink: 0; margin-top: 2px; }
+.tk-title { font-size: 15px; font-weight: 600; font-family: var(--serif); margin-bottom: 6px; letter-spacing: -0.01em; color: var(--text); }
+.tk-body { font-size: 13.5px; color: var(--muted); line-height: 1.75; font-weight: 300; }
+.tk-code {
+  font-family: var(--mono); font-size: 11px;
+  background: var(--bg4); border: 1px solid var(--border2);
+  border-radius: 4px; padding: 2px 6px; color: var(--accent);
+  white-space: normal; word-break: break-word;
+  display: inline;
+}
+
+.tk-platform-card {
+  background: var(--bg2); border: 1px solid var(--border);
+  border-radius: var(--r2); padding: 20px 22px;
+}
+.tk-platform-header { margin-bottom: 14px; }
+.tk-platform-badge {
+  font-size: 11px; font-family: var(--mono); font-weight: 600;
+  padding: 4px 12px; border-radius: 20px; border: 1px solid;
+  letter-spacing: 0.04em;
+}
+.tk-platform-list {
+  list-style: none; display: flex; flex-direction: column; gap: 10px;
+}
+.tk-platform-list li {
+  font-size: 13.5px; color: var(--muted); line-height: 1.75;
+  font-weight: 300; padding-left: 16px; position: relative;
+}
+.tk-platform-list li::before { content: '›'; position: absolute; left: 0; color: var(--faint); }
+.tk-platform-list strong { color: var(--text); font-weight: 500; }
+
+/* ════════════════════════
    PROFILE
 ════════════════════════ */
 .profile-header-card {
@@ -391,7 +446,8 @@ textarea.prompt-input::placeholder { color: var(--faint); }
 }
 .profile-domain-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
 .profile-domain-name { display: flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 600; text-transform: capitalize; }
-.profile-domain-icon { font-size: 18px; }
+.profile-domain-icon { display: inline-flex; align-items: center; color: var(--accent); }
+.profile-domain-icon svg { width: 18px; height: 18px; }
 .profile-level-badge {
   display: inline-flex; align-items: center; gap: 4px;
   background: var(--accent3); border: 1px solid rgba(184,255,87,0.2);
@@ -840,21 +896,24 @@ textarea.prompt-input::placeholder { color: var(--faint); }
       </div>
       <nav class="sidebar-nav">
         <div class="nav-item active" data-view="view-home" onclick="showView('view-home')">
-          <span class="nav-icon">⬡</span> Domains
+          <span class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg></span> Domains
         </div>
         <div class="nav-item" data-view="view-flashcards" onclick="showView('view-flashcards')">
-          <span class="nav-icon">▣</span> Flashcards
+          <span class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M12 4v16"/></svg></span> Flashcards
         </div>
         <div class="nav-item" data-view="view-llm" onclick="showView('view-llm')">
-          <span class="nav-icon">◈</span> How LLMs Work
+          <span class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a4 4 0 0 1 4 4c0 1.95-1.4 3.58-3.25 3.93L12 22"/><path d="M12 2a4 4 0 0 0-4 4c0 1.95 1.4 3.58 3.25 3.93"/><circle cx="12" cy="6" r="1"/></svg></span> How LLMs Work
+        </div>
+        <div class="nav-item" data-view="view-tokens" onclick="showView('view-tokens')">
+          <span class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg></span> Save Tokens
         </div>
         <div class="nav-item" data-view="view-profile" onclick="showView('view-profile'); loadProfile()">
-          <span class="nav-icon">◎</span> Profile
+          <span class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></span> Profile
         </div>
       </nav>
       <div class="sidebar-footer">
         <button class="logout-btn" onclick="doLogout()">
-          <span class="nav-icon">↩</span> Sign out
+          <span class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg></span> Sign out
         </button>
       </div>
     </aside>
@@ -864,9 +923,11 @@ textarea.prompt-input::placeholder { color: var(--faint); }
       <div class="mobile-bar">
         <div class="mobile-logo">Prompt<span>Better</span></div>
         <div class="mobile-nav">
-          <button class="mobile-nav-btn" onclick="showView('view-home')">Domains</button>
-          <button class="mobile-nav-btn" onclick="showView('view-llm')">How LLMs Work</button>
-          <button class="mobile-nav-btn" onclick="showView('view-profile'); loadProfile()">Profile</button>
+          <button class="mobile-nav-btn active" data-view="view-home" onclick="showView('view-home')">Domains</button>
+          <button class="mobile-nav-btn" data-view="view-flashcards" onclick="showView('view-flashcards')">Flashcards</button>
+          <button class="mobile-nav-btn" data-view="view-llm" onclick="showView('view-llm')">LLMs</button>
+          <button class="mobile-nav-btn" data-view="view-tokens" onclick="showView('view-tokens')">Tokens</button>
+          <button class="mobile-nav-btn" data-view="view-profile" onclick="showView('view-profile'); loadProfile()">Profile</button>
         </div>
         <button class="mobile-logout" onclick="doLogout()">Sign out</button>
       </div>
@@ -950,6 +1011,7 @@ textarea.prompt-input::placeholder { color: var(--faint); }
               oninput="onPromptInput(this)"
             ></textarea>
             <div class="submit-row">
+              <span class="shortcut-hint">Ctrl + Enter</span>
               <button class="btn-submit" id="submit-btn" onclick="doSubmit()">
                 <div class="spinner" id="submit-spinner"></div>
                 <span id="submit-label">Submit prompt</span>
@@ -974,7 +1036,7 @@ textarea.prompt-input::placeholder { color: var(--faint); }
               </div>
             </div>
 
-            <!-- dimensions: clarity, context, specificity, constraints, technique (each 0-20) -->
+            <!-- dimensions: clarity, specificity, context (each 0-33) -->
             <div class="dimensions-section" id="dimensions-section" style="display:none">
               <div class="section-label" style="margin-bottom:12px">Dimensions</div>
               <div id="dim-rows"></div>
@@ -1117,6 +1179,132 @@ textarea.prompt-input::placeholder { color: var(--faint); }
       </div><!-- /view-llm -->
 
       <!-- PROFILE -->
+      <!-- SAVE TOKENS -->
+      <div id="view-tokens" class="view">
+        <div class="view-header">
+          <h1>Save Your <em>Tokens</em></h1>
+          <p>Spend fewer tokens per request — without losing output quality.</p>
+        </div>
+
+        <!-- what is a token -->
+        <div class="card" style="margin-bottom:16px">
+          <div class="section-label">What is a token?</div>
+          <p style="font-size:14px;color:var(--muted);line-height:1.75;font-weight:300;margin-top:8px">
+            Every word, punctuation mark, and space you send to an AI costs tokens — both in your prompt (input) and in the response (output). Most models charge for both directions. A token is roughly <span style="color:var(--text);font-weight:500">¾ of a word</span> in English, so "prompt engineering" is about 3 tokens. The less you waste, the more you can do within a context window or a budget.
+          </p>
+        </div>
+
+        <!-- general tips grid -->
+        <div class="section-label" style="margin-bottom:12px">General Tips — works on every model</div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px;margin-bottom:24px">
+
+          <div class="tk-card">
+            <div class="tk-icon">✂️</div>
+            <div>
+              <div class="tk-title">Trim your system prompt</div>
+              <p class="tk-body">Every system prompt is re-sent on every request. Cut repetition, bullet-point instructions instead of paragraphs, and remove anything the model already knows by default.</p>
+            </div>
+          </div>
+
+          <div class="tk-card">
+            <div class="tk-icon">🎯</div>
+            <div>
+              <div class="tk-title">Ask for shorter output explicitly</div>
+              <p class="tk-body">Models pad responses by default. Adding <span class="tk-code">Be concise. No filler.</span> or <span class="tk-code">Reply in under 100 words</span> can cut output tokens by 30–50% without losing substance.</p>
+            </div>
+          </div>
+
+          <div class="tk-card">
+            <div class="tk-icon">🗜️</div>
+            <div>
+              <div class="tk-title">Compress your context</div>
+              <p class="tk-body">Instead of pasting a full document, summarise it first or extract only the relevant section. Sending a 10-page PDF when you need one paragraph wastes thousands of tokens.</p>
+            </div>
+          </div>
+
+          <div class="tk-card">
+            <div class="tk-icon">🔁</div>
+            <div>
+              <div class="tk-title">Don't repeat context across turns</div>
+              <p class="tk-body">In multi-turn chats, avoid re-stating facts the model already has. Reference them briefly — <span class="tk-code">using the function from earlier</span> — instead of pasting them again.</p>
+            </div>
+          </div>
+
+          <div class="tk-card">
+            <div class="tk-icon">📋</div>
+            <div>
+              <div class="tk-title">Use structured formats</div>
+              <p class="tk-body">Asking for JSON, YAML, or a table instead of prose forces the model to be dense. Prose explanations cost far more tokens than an equivalent structured response.</p>
+            </div>
+          </div>
+
+          <div class="tk-card">
+            <div class="tk-icon">🧩</div>
+            <div>
+              <div class="tk-title">Break large tasks into steps</div>
+              <p class="tk-body">One huge prompt with a massive response often uses more tokens than two focused requests. Ask for the plan first, confirm it, then execute — each call stays lean.</p>
+            </div>
+          </div>
+
+          <div class="tk-card">
+            <div class="tk-icon">🚫</div>
+            <div>
+              <div class="tk-title">Skip the pleasantries</div>
+              <p class="tk-body">Opening with <span class="tk-code">Sure! I'd be happy to help you with that.</span> is pure token waste. Instructions like <span class="tk-code">No preamble. Start directly.</span> eliminate filler from every response.</p>
+            </div>
+          </div>
+
+          <div class="tk-card">
+            <div class="tk-icon">📐</div>
+            <div>
+              <div class="tk-title">Pick the right model size</div>
+              <p class="tk-body">A smaller, cheaper model handles classification, extraction, and simple rewrites just as well as a flagship model — at a fraction of the cost. Reserve large models for reasoning-heavy tasks.</p>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- company specific -->
+        <div class="section-label" style="margin-bottom:12px">Platform-Specific Tips</div>
+        <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:8px">
+
+          <div class="tk-platform-card">
+            <div class="tk-platform-header">
+              <span class="tk-platform-badge" style="background:rgba(255,255,255,0.08);border-color:rgba(255,255,255,0.25);color:#ffffff">OpenAI · GPT-4o / o-series</span>
+            </div>
+            <ul class="tk-platform-list">
+              <li>Use <strong>Structured Outputs</strong> (JSON mode) — it skips verbose explanations and returns only data.</li>
+              <li>With <strong>o1 / o3</strong> reasoning models, the chain-of-thought tokens are hidden but still billed. Keep your prompt tight — longer prompts force longer internal reasoning.</li>
+              <li>Use the <strong>Assistants API with file search</strong> instead of pasting entire documents — only relevant chunks are retrieved per turn.</li>
+            </ul>
+          </div>
+
+          <div class="tk-platform-card">
+            <div class="tk-platform-header">
+              <span class="tk-platform-badge" style="background:rgba(217,119,87,0.12);border-color:rgba(217,119,87,0.35);color:#d97757">Anthropic · Claude</span>
+            </div>
+            <ul class="tk-platform-list">
+              <li>Use <strong>Prompt Caching</strong> — static parts of your prompt (system instructions, documents) can be cached and re-used across calls, reducing input token cost by up to 90%.</li>
+              <li>Claude is verbose by default. Add <span class="tk-code">Be direct and concise.</span> to your system prompt — it noticeably shortens responses without cutting accuracy.</li>
+              <li>For long documents, use <strong>Claude's document block</strong> with a specific question rather than asking it to "read and summarise everything."</li>
+            </ul>
+          </div>
+
+          <div class="tk-platform-card">
+            <div class="tk-platform-header">
+              <span class="tk-platform-badge" style="background:rgba(66,133,244,0.12);border-color:rgba(66,133,244,0.35);color:#4285f4">Google · Gemini</span>
+            </div>
+            <ul class="tk-platform-list">
+              <li>Gemini has a massive context window — but filling it isn't free. Use <strong>context caching</strong> for repeated large inputs like codebases or long documents.</li>
+              <li>For multimodal inputs (images, video), pass the lowest resolution that still works. Vision tokens scale with image size.</li>
+              <li>Use <strong>controlled generation</strong> (response schema) to force structured JSON output and eliminate narrative padding.</li>
+            </ul>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- PROFILE -->
       <div id="view-profile" class="view">
         <div class="view-header">
           <h1>Your <em>Profile</em></h1>
@@ -1173,7 +1361,7 @@ textarea.prompt-input::placeholder { color: var(--faint); }
 
 <script>
 /* ── Config ── */
-const API = window.API_BASE || 'https://promptbetter-production.up.railway.app';
+const API = 'http://localhost:8080';
 
 /* ── State ── */
 let token  = '';
@@ -1212,6 +1400,10 @@ function showView(id) {
   document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
   const navEl = document.querySelector(`.nav-item[data-view="${id}"]`);
   if (navEl) navEl.classList.add('active');
+  // Sync mobile nav active state
+  document.querySelectorAll('.mobile-nav-btn').forEach(b => b.classList.remove('active'));
+  const mobileEl = document.querySelector(`.mobile-nav-btn[data-view="${id}"]`);
+  if (mobileEl) mobileEl.classList.add('active');
   if (id === 'view-llm' && !window._llmViewInited) {
     window._llmViewInited = true;
     initLLMAnimation('llm-view');
@@ -1234,6 +1426,7 @@ async function doLogin() {
   const btn      = document.getElementById('login-btn');
   errEl.classList.remove('show');
   if (!email || !password) { showError(errEl, 'Please fill in all fields.'); return; }
+  if (!isValidEmail(email)) { showError(errEl, 'Please enter a valid email address.'); return; }
   btn.disabled = true; btn.textContent = 'Signing in…';
   try {
     const data = await api('POST', '/api/auth/login', { email, password }, false);
@@ -1253,6 +1446,7 @@ async function doRegister() {
   const btn      = document.getElementById('register-btn');
   errEl.classList.remove('show');
   if (!name || !email || !password) { showError(errEl, 'Please fill in all fields.'); return; }
+  if (!isValidEmail(email)) { showError(errEl, 'Please enter a valid email address.'); return; }
   if (password.length < 6) { showError(errEl, 'Password must be at least 6 characters.'); return; }
   btn.disabled = true; btn.textContent = 'Creating account…';
   try {
@@ -1368,18 +1562,35 @@ async function loadProfile() {
    GET /api/challenges/domains → string[]
 ══════════════════════════════════ */
 const DOMAIN_ICONS = {
-  'software engineering': '⌨',
-  'data science':         '📈',
-  'business writing':     '📊',
-  'creative writing':     '✍',
-  'marketing':            '📣',
-  'science':              '🔬',
-  'education':            '📚',
-  'legal':                '⚖',
-  'medical':              '⚕',
-  'design':               '🎨',
-  'finance':              '💹',
-  'sales':                '🤝',
+  'software engineering': '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>',
+  'data science':         '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 21H4.6c-.56 0-.84 0-1.05-.11a1 1 0 0 1-.44-.44C3 20.24 3 19.96 3 19.4V3"/><path d="m7 14 4-4 4 4 6-6"/></svg>',
+  'business writing':     '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z"/><path d="M14 2v6h6"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="12" y2="17"/></svg>',
+  'creative writing':     '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>',
+  'marketing':            '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="m3 11 18-5v12L3 13v-2z"/><path d="M11.6 16.8a3 3 0 1 1-5.8-1.6"/></svg>',
+  'science':              '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10 2v7.527a2 2 0 0 1-.211.896L4.72 20.55a1 1 0 0 0 .9 1.45h12.76a1 1 0 0 0 .9-1.45l-5.069-10.127A2 2 0 0 1 14 9.527V2"/><path d="M8.5 2h7"/></svg>',
+  'education':            '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>',
+  'legal':                '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="m3 17 3-3 3 3"/><path d="m15 17 3-3 3 3"/><line x1="12" y1="2" x2="12" y2="22"/><path d="M6 7h12"/><path d="M3 22h18"/></svg>',
+  'medical':              '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2v4m8-4v4"/><rect x="3" y="6" width="18" height="4" rx="1"/><path d="M12 10v6"/><path d="M9 13h6"/><path d="M5 10v9a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-9"/></svg>',
+  'design':               '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="13.5" cy="6.5" r="2.5"/><circle cx="17.5" cy="10.5" r="2.5"/><circle cx="8.5" cy="7.5" r="2.5"/><circle cx="6.5" cy="12.5" r="2.5"/><path d="M12 22c5.5 0 10-4.5 10-10S17.5 2 12 2 2 6.5 2 12c0 1.8.5 3.5 1.2 5L12 22z"/></svg>',
+  'finance':              '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>',
+  'sales':                '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>',
+  'everyday ai use':      '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a4 4 0 0 1 4 4c0 1.95-1.4 3.58-3.25 3.93L12 22"/><path d="M12 2a4 4 0 0 0-4 4c0 1.95 1.4 3.58 3.25 3.93"/><circle cx="12" cy="6" r="1"/><path d="M5 17.5A7 7 0 0 1 5 6.5"/><path d="M19 6.5a7 7 0 0 1 0 11"/></svg>',
+};
+
+const DOMAIN_DESCS = {
+  'software engineering': 'Craft prompts for code generation, debugging & architecture',
+  'data science':         'Analyse datasets, build models & extract insights with AI',
+  'business writing':     'Draft memos, reports & professional communications',
+  'creative writing':     'Generate stories, poetry & imaginative content',
+  'marketing':            'Create campaigns, copy & audience-targeted messaging',
+  'science':              'Explore research, hypotheses & scientific analysis',
+  'education':            'Build lesson plans, explanations & learning materials',
+  'legal':                'Draft contracts, analyse case law & legal reasoning',
+  'medical':              'Navigate clinical scenarios & health-related queries',
+  'design':               'Prompt for UI/UX, branding & visual concepts',
+  'finance':              'Model projections, analyse markets & financial data',
+  'sales':                'Write outreach, objection handling & pitch decks',
+  'everyday ai use':      'Practical prompts for daily tasks, planning & productivity',
 };
 
 async function loadDomains() {
@@ -1390,11 +1601,21 @@ async function loadDomains() {
       grid.innerHTML = '<div class="empty-state"><div class="empty-icon">📭</div><p>No domains found.</p></div>';
       return;
     }
-    grid.innerHTML = domains.map(d => `
+
+    // Fetch challenge counts per domain in parallel
+    const countPromises = domains.map(d =>
+      api('GET', `/api/challenges?domain=${encodeURIComponent(d)}`).then(arr => arr.length).catch(() => 0)
+    );
+    const counts = await Promise.all(countPromises);
+
+    grid.innerHTML = domains.map((d, i) => `
       <div class="domain-card" data-domain="${escHtml(d)}">
         <div class="domain-icon">${DOMAIN_ICONS[d.toLowerCase()] || '◆'}</div>
         <div class="domain-name">${escHtml(d)}</div>
-        <div class="domain-sub">Click to start practising</div>
+        <div class="domain-sub">${DOMAIN_DESCS[d.toLowerCase()] || 'Practise prompt engineering'}</div>
+        <div class="domain-card-meta">
+          <span class="domain-challenge-count">${counts[i]} challenge${counts[i] !== 1 ? 's' : ''}</span>
+        </div>
       </div>
     `).join('');
     grid.querySelectorAll('.domain-card').forEach(card => {
@@ -1612,11 +1833,9 @@ async function loadChallenge(domain, level, signal) {
            improved_prompt: string,
            explanation: string,
            dimensions: {
-             clarity: int (0-20),
-             context: int (0-20),
-             specificity: int (0-20),
-             constraints: int (0-20),
-             technique: int (0-20)
+             clarity: int (0-33),
+             specificity: int (0-33),
+             context: int (0-33)
            }
          }
        }
@@ -1635,6 +1854,9 @@ function insertAtCursor(text) {
 
 function onPromptInput(el) {
   document.getElementById('char-count').textContent = el.value.length + ' chars';
+  // Auto-grow textarea
+  el.style.height = 'auto';
+  el.style.height = Math.max(160, el.scrollHeight) + 'px';
 }
 
 async function doSubmit() {
@@ -1784,7 +2006,7 @@ function renderResult(result, animate) {
   luBadge.style.display = result.leveledUp ? '' : 'none';
   if (result.leveledUp) showToast('🎉 You levelled up!', 'success');
 
-  // Dimension bars: fb.dimensions = { clarity, context, specificity, constraints, technique }
+  // Dimension bars: fb.dimensions = { clarity, specificity, context } (each 0-33)
   const dimsSection = document.getElementById('dimensions-section');
   const dimRows     = document.getElementById('dim-rows');
   if (fb.dimensions && typeof fb.dimensions === 'object') {
@@ -1792,8 +2014,8 @@ function renderResult(result, animate) {
     dimRows.innerHTML = Object.entries(fb.dimensions).map(([key, val]) => `
       <div class="dim-row">
         <div class="dim-label">${key}</div>
-        <div class="dim-track"><div class="dim-fill" style="width:${Math.round((val / 20) * 100)}%"></div></div>
-        <div class="dim-val">${val}/20</div>
+        <div class="dim-track"><div class="dim-fill" style="width:${Math.round((val / 33) * 100)}%"></div></div>
+        <div class="dim-val">${val}/33</div>
       </div>
     `).join('');
   } else {
@@ -1863,6 +2085,10 @@ function showToast(msg, type = '') {
 
 function escHtml(s) {
   return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function isValidEmail(email) {
+  return /^[A-Za-z0-9._%+\-]+@[A-Za-z0-9.\-]+\.[A-Za-z]{2,}$/.test(email);
 }
 
 /* ══════════════════════════════════
@@ -2423,6 +2649,165 @@ document.addEventListener('keydown', e => {
   if (e.key === ' ') { e.preventDefault(); document.getElementById('fc-study-card').classList.toggle('flipped'); }
 });
 
+// ══════════════════════════════════
+// INFO / HOW-TO GUIDE
+// ══════════════════════════════════
+function openInfoGuide() {
+  document.getElementById('info-guide-overlay').classList.add('show');
+}
+function closeInfoGuide() {
+  document.getElementById('info-guide-overlay').classList.remove('show');
+  try { localStorage.setItem('pb_seen_guide', '1'); } catch(e) {}
+}
+function maybeShowGuideForNewUser() {
+  try {
+    if (!localStorage.getItem('pb_seen_guide')) openInfoGuide();
+  } catch(e) {}
+}
+
+// hook into enterApp
+const _origEnterApp = enterApp;
+enterApp = function() {
+  _origEnterApp();
+  maybeShowGuideForNewUser();
+};
+
 </script>
+
+<!-- Info Guide Floating Button & Modal -->
+<style>
+.info-fab {
+  position: fixed; bottom: 28px; right: 28px; z-index: 9999;
+  width: 52px; height: 52px; border-radius: 50%;
+  background: var(--accent); color: #0a0a0f;
+  font-size: 26px; font-weight: 700; font-family: var(--serif);
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; box-shadow: 0 4px 24px rgba(184,255,87,0.25);
+  transition: transform .15s, box-shadow .15s;
+  border: none;
+}
+.info-fab:hover { transform: scale(1.08); box-shadow: 0 6px 32px rgba(184,255,87,0.35); }
+
+.info-overlay {
+  position: fixed; inset: 0; z-index: 10000;
+  background: rgba(0,0,0,0.7); backdrop-filter: blur(6px);
+  display: flex; align-items: center; justify-content: center;
+  opacity: 0; pointer-events: none; transition: opacity .25s;
+}
+.info-overlay.show { opacity: 1; pointer-events: auto; }
+
+.info-modal {
+  background: var(--bg2); border: 1px solid var(--border2); border-radius: var(--r2);
+  width: 94%; max-width: 560px; max-height: 85vh; overflow-y: auto;
+  padding: 36px 32px; position: relative;
+  box-shadow: 0 24px 80px rgba(0,0,0,0.5);
+}
+.info-modal-close {
+  position: absolute; top: 14px; right: 16px;
+  background: var(--bg3); border: 1px solid var(--border2); border-radius: 50%;
+  width: 32px; height: 32px; display: flex; align-items: center; justify-content: center;
+  font-size: 16px; color: var(--muted); cursor: pointer; transition: color .15s, border-color .15s;
+}
+.info-modal-close:hover { color: var(--text); border-color: var(--accent); }
+
+.info-modal h2 {
+  font-family: var(--serif); font-size: 24px; font-weight: 700;
+  letter-spacing: -0.02em; margin-bottom: 6px;
+}
+.info-modal h2 em { font-style: italic; color: var(--accent); font-weight: 400; }
+.info-modal > .info-subtitle { font-size: 14px; color: var(--muted); margin-bottom: 24px; font-weight: 300; }
+
+.info-steps { display: flex; flex-direction: column; gap: 18px; }
+.info-step {
+  display: flex; gap: 14px; align-items: flex-start;
+}
+.info-step-num {
+  width: 30px; height: 30px; border-radius: 50%; flex-shrink: 0;
+  background: var(--accent3); border: 1px solid rgba(184,255,87,0.25);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 13px; font-family: var(--mono); color: var(--accent); font-weight: 600;
+}
+.info-step-body h3 { font-size: 15px; font-weight: 600; margin-bottom: 3px; }
+.info-step-body p { font-size: 13px; color: var(--muted); line-height: 1.6; font-weight: 300; }
+
+.info-tip {
+  margin-top: 22px; padding: 14px 16px;
+  background: rgba(184,255,87,0.06); border: 1px solid rgba(184,255,87,0.2);
+  border-left: 3px solid var(--accent); border-radius: var(--r);
+  font-size: 13px; color: var(--muted); line-height: 1.6;
+}
+.info-tip strong { color: var(--accent); }
+
+.info-got-it {
+  margin-top: 24px; width: 100%;
+  background: var(--accent); color: #0a0a0f;
+  font-size: 14px; font-weight: 600; padding: 12px; border-radius: var(--r);
+  font-family: var(--serif); letter-spacing: 0.01em; cursor: pointer;
+  transition: background .15s;
+}
+.info-got-it:hover { background: var(--accent2); }
+</style>
+
+<button class="info-fab" onclick="openInfoGuide()" title="How to use PromptBetter">?</button>
+
+<div class="info-overlay" id="info-guide-overlay" onclick="if(event.target===this)closeInfoGuide()">
+  <div class="info-modal">
+    <button class="info-modal-close" onclick="closeInfoGuide()">✕</button>
+    <h2>Welcome to Prompt<em>Better</em></h2>
+    <p class="info-subtitle">Here's how to sharpen your prompt engineering skills in a few simple steps.</p>
+
+    <div class="info-steps">
+      <div class="info-step">
+        <div class="info-step-num">1</div>
+        <div class="info-step-body">
+          <h3>Pick a Domain</h3>
+          <p>Start on the <strong>Domains</strong> page and choose a topic you're interested in — coding, writing, data analysis, and more.</p>
+        </div>
+      </div>
+      <div class="info-step">
+        <div class="info-step-num">2</div>
+        <div class="info-step-body">
+          <h3>Solve Challenges</h3>
+          <p>Each domain has challenges at different difficulty levels. Read the task, write your best prompt, and submit it for instant AI-powered feedback.</p>
+        </div>
+      </div>
+      <div class="info-step">
+        <div class="info-step-num">3</div>
+        <div class="info-step-body">
+          <h3>Learn from Feedback</h3>
+          <p>You'll get a score, coaching tips, and teaching points that explain <em>why</em> certain prompting techniques work better.</p>
+        </div>
+      </div>
+      <div class="info-step">
+        <div class="info-step-num">4</div>
+        <div class="info-step-body">
+          <h3>Level Up</h3>
+          <p>Earn XP with each submission. As you improve, unlock harder challenges and track your progress on your <strong>Profile</strong>.</p>
+        </div>
+      </div>
+      <div class="info-step">
+        <div class="info-step-num">5</div>
+        <div class="info-step-body">
+          <h3>Study with Flashcards & Glossary</h3>
+          <p>Use the <strong>Flashcards</strong> section to review key prompt engineering concepts, and browse the built-in glossary anytime.</p>
+        </div>
+      </div>
+      <div class="info-step">
+        <div class="info-step-num">6</div>
+        <div class="info-step-body">
+          <h3>Understand How LLMs Work</h3>
+          <p>Head to <strong>How LLMs Work</strong> for a visual, interactive primer on the technology behind AI models.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="info-tip">
+      <strong>💡 Tip:</strong> You can reopen this guide anytime by clicking the <strong>?</strong> button in the bottom-right corner.
+    </div>
+
+    <button class="info-got-it" onclick="closeInfoGuide()">Got it, let's go!</button>
+  </div>
+</div>
+
 </body>
 </html>

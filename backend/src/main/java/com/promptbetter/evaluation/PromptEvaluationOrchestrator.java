@@ -71,7 +71,7 @@ public class PromptEvaluationOrchestrator {
                 .generalScore(generalScore)
                 .strengths(coachFeedback.getStrengths())
                 .flaws(coachFeedback.getFlaws())
-                .improvedPrompt(coachFeedback.getImprovedPrompt())
+                .improvedPrompt(finalScore > 80 ? null : coachFeedback.getImprovedPrompt())
                 .explanation(coachFeedback.getExplanation())
                 .dimensions(coachFeedback.getDimensions())
                 .factSheet(factSheet)
@@ -101,12 +101,10 @@ public class PromptEvaluationOrchestrator {
         if (dimensions == null) {
             return 0;
         }
-        int clarity = clamp(dimensions.getOrDefault("clarity", 0), 0, 20);
-        int context = clamp(dimensions.getOrDefault("context", 0), 0, 20);
-        int specificity = clamp(dimensions.getOrDefault("specificity", 0), 0, 20);
-        int constraints = clamp(dimensions.getOrDefault("constraints", 0), 0, 20);
-        int technique = clamp(dimensions.getOrDefault("technique", 0), 0, 20);
-        return clamp(clarity + context + specificity + constraints + technique, 0, 100);
+        int clarity = clamp(dimensions.getOrDefault("clarity", 0), 0, 33);
+        int specificity = clamp(dimensions.getOrDefault("specificity", 0), 0, 33);
+        int context = clamp(dimensions.getOrDefault("context", 0), 0, 33);
+        return clamp(clarity + specificity + context, 0, 100);
     }
 
     public static int computeFinalScore(int teachingPointScore,

@@ -37,11 +37,19 @@ public class PromptCoachService {
             You are a friendly prompt coach helping everyday users improve.
             You will receive a TASK, USER_PROMPT, FACT_SHEET and TEACHING_POINT status.
 
+            IMPORTANT: The FACT_SHEET is the authoritative source of truth about what the
+            user's prompt contains. If FACT_SHEET shows programming_language is set (not null),
+            then the user DID specify a programming language — do NOT list it as a flaw.
+            Similarly, trust TEACHING_POINT_MET: if true, do not contradict it in flaws.
+            Only flag things as flaws if the FACT_SHEET confirms they are missing.
+
             Generate coaching feedback and general quality dimensions only.
             Do not calculate final score or weighted score.
 
-            Dimensions must be integers from 0 to 20 for:
-            clarity, context, specificity, constraints, technique.
+            Dimensions must be integers from 0 to 33 for:
+            clarity    — how clear and unambiguous the prompt is
+            specificity — how detailed, constrained and precise the prompt is
+            context     — how well the prompt sets role, audience, technique and framing
 
             Return ONLY JSON:
             {
@@ -51,10 +59,8 @@ public class PromptCoachService {
               "explanation": "...",
               "dimensions": {
                 "clarity": 0,
-                "context": 0,
                 "specificity": 0,
-                "constraints": 0,
-                "technique": 0
+                "context": 0
               }
             }
             """;
@@ -101,11 +107,9 @@ public class PromptCoachService {
 
     private Map<String, Integer> normalizeDimensions(Map<String, Integer> rawDimensions) {
         Map<String, Integer> normalized = new LinkedHashMap<>();
-        normalized.put("clarity", clamp(rawDimensions == null ? 0 : rawDimensions.getOrDefault("clarity", 0), 0, 20));
-        normalized.put("context", clamp(rawDimensions == null ? 0 : rawDimensions.getOrDefault("context", 0), 0, 20));
-        normalized.put("specificity", clamp(rawDimensions == null ? 0 : rawDimensions.getOrDefault("specificity", 0), 0, 20));
-        normalized.put("constraints", clamp(rawDimensions == null ? 0 : rawDimensions.getOrDefault("constraints", 0), 0, 20));
-        normalized.put("technique", clamp(rawDimensions == null ? 0 : rawDimensions.getOrDefault("technique", 0), 0, 20));
+        normalized.put("clarity", clamp(rawDimensions == null ? 0 : rawDimensions.getOrDefault("clarity", 0), 0, 33));
+        normalized.put("specificity", clamp(rawDimensions == null ? 0 : rawDimensions.getOrDefault("specificity", 0), 0, 33));
+        normalized.put("context", clamp(rawDimensions == null ? 0 : rawDimensions.getOrDefault("context", 0), 0, 33));
         return normalized;
     }
 
