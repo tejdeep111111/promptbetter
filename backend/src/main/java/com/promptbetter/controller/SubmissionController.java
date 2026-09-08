@@ -1,5 +1,7 @@
 package com.promptbetter.controller;
 
+import com.promptbetter.dto.SubmissionRequest;
+import com.promptbetter.model.Submission;
 import com.promptbetter.model.User;
 import com.promptbetter.service.RateLimiterService;
 import com.promptbetter.service.SubmissionService;
@@ -18,7 +20,7 @@ public class SubmissionController {
     private final RateLimiterService rateLimiterService;
 
     @PostMapping
-    public ResponseEntity<?> submit(@RequestBody Map<String, Object> body, Authentication auth) {
+    public ResponseEntity<?> submit(@RequestBody SubmissionRequest submissionRequest, Authentication auth) {
         try {
             // auth.getPrincipal() is the User object set by JwtAuthFilter.
             // Cast to User (which implements UserDetails) to get the real ID.
@@ -30,9 +32,9 @@ public class SubmissionController {
                return ResponseEntity.status(429).body(Map.of("error", "Too many submissions. Please wait " + (remaining / 1000) + " seconds."));
             }
 
-            Long challengeId = Long.valueOf(body.get("challengeId").toString());
-            String userPrompt = body.get("userPrompt").toString();
-            return ResponseEntity.ok(submissionService.submitPrompt(userId, challengeId, userPrompt));
+            Long challengeId = Long.valueOf(submissionRequest.challengeId().toString());
+            String userPrompt = submissionRequest.userPrompt();
+            return ResponseEntity.status(201).body(submissionService.submitPrompt(userId, challengeId, userPrompt));
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         }

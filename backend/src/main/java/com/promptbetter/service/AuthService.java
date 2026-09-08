@@ -1,5 +1,6 @@
 package com.promptbetter.service;
 
+import com.promptbetter.dto.AuthResponse;
 import com.promptbetter.model.User;
 import com.promptbetter.repository.UserRepository;
 import com.promptbetter.util.EmailValidator;
@@ -19,7 +20,7 @@ public class AuthService {
     private final EmailValidator emailValidator;
 
 
-    public Map<String, Object> register(String name, String email, String password) {
+    public AuthResponse register(String name, String email, String password) {
         if (name == null || name.isBlank() || email == null || email.isBlank() || password == null || password.isBlank()) {
             throw new IllegalArgumentException("Name, email, and password are required");
         }
@@ -42,7 +43,7 @@ public class AuthService {
 
         String token = jwtUtil.generateToken(user);
         // Return the token and user info in the form of json
-        return Map.of("token", token, "name", user.getName(), "email", user.getEmail(), "id", user.getId());
+        return new AuthResponse(token, user.getId(), user.getName(), user.getEmail());
     }
 
     public Map<String, Object> login(String email, String password) {

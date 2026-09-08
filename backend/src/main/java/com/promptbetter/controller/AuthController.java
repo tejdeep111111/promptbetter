@@ -1,6 +1,8 @@
 package com.promptbetter.controller;
 
 
+import com.promptbetter.dto.LoginRequest;
+import com.promptbetter.dto.RegisterRequest;
 import com.promptbetter.service.AuthService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -17,28 +19,28 @@ public class AuthController {
     }
 
     @PostMapping("/register")
-    public ResponseEntity<?> register(@RequestBody Map<String, String> body) {
+    public ResponseEntity<?> register(@RequestBody RegisterRequest request) {
         try {
-            return ResponseEntity.ok(authService.register(
-                    body.get("name"),
-                    body.get("email"),
-                    body.get("password")
+            return ResponseEntity.status(201).body(authService.register(
+                    request.name(),
+                    request.email(),
+                    request.password()
             ));
         } catch (Exception e) {
-            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+            return ResponseEntity.status(400).body(Map.of("error", e.getMessage()));
         }
 
     }
 
     @PostMapping("/login")
-    public ResponseEntity<?> login(@RequestBody Map<String, String> body) {
+    public ResponseEntity<?> login(@RequestBody LoginRequest request) {
         try {
             return ResponseEntity.ok(authService.login(
-                    body.get("email"),
-                    body.get("password")
+                    request.email(),
+                    request.password()
             ));
         } catch (Exception e) {
-            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+            return ResponseEntity.status(401).body(Map.of("error", e.getMessage()));
         }
     }
 }

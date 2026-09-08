@@ -22,9 +22,14 @@ public class GlossaryController {
      * Frontend calls this once at login and caches locally
      */
     @GetMapping
-    @Cacheable(value = "glossary")
+
     public ResponseEntity<?> getAllTerms() {
-        Map<String, Map<String, String>> glossary = glossaryRepository.findAll().stream()
+       return ResponseEntity.ok(getGlossary());
+    }
+
+    @Cacheable(value = "glossary")
+    public Map<String, Map<String, String>> getGlossary() {
+        return glossaryRepository.findAll().stream()
             .collect(Collectors.toMap(
                 GlossaryTerm::getTermKey,
                 term -> Map.of(
@@ -33,6 +38,5 @@ public class GlossaryController {
                     "category", term.getCategory() != null ? term.getCategory() : ""
                 )
             ));
-        return ResponseEntity.ok(glossary);
     }
 }
