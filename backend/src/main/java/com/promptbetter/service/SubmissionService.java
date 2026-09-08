@@ -10,35 +10,78 @@ import com.promptbetter.model.UserProgress;
 import com.promptbetter.repository.ChallengeRepository;
 import com.promptbetter.repository.SubmissionRepository;
 import com.promptbetter.repository.UserProgressRepository;
-import lombok.AllArgsConstructor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.RestClient;
 
+import java.util.HashMap;
 import java.util.Map;
 import java.util.List;
 import java.util.Optional;
 
 @Service
-@AllArgsConstructor
 public class SubmissionService {
+    private static final Logger log = LoggerFactory.getLogger(SubmissionService.class);
+
     private final SubmissionRepository submissionRepository;
     private final ChallengeRepository challengeRepository;
     private final UserProgressRepository userProgressRepository;
     private final PromptEvaluationOrchestrator evaluationOrchestrator;
+    private final RestClient restClient;
+    private final ObjectMapper objectMapper;
 
-    private final ObjectMapper objectMapper = new ObjectMapper();
+    @Value("${app.evaluator.url:http://localhost:8081/api/evaluate}")
+    private String evaluatorUrl;
+
+    public SubmissionService(SubmissionRepository submissionRepository,
+                             ChallengeRepository challengeRepository,
+                             UserProgressRepository userProgressRepository,
+                             PromptEvaluationOrchestrator evaluationOrchestrator) {
+        this.submissionRepository = submissionRepository;
+        this.challengeRepository = challengeRepository;
+        this.userProgressRepository = userProgressRepository;
+        this.evaluationOrchestrator = evaluationOrchestrator;
+        this.restClient = RestClient.create();
+        this.objectMapper = new ObjectMapper();
+    }
 
     public Map<String, Object> submitPrompt(Long userId, Long challengeId, String prompt) throws Exception {
         Challenge challenge = challengeRepository.findById(challengeId)
                 .orElseThrow(() -> new RuntimeException("Challenge not found"));
 
-        PromptEvaluationResponse evaluationResponse = evaluationOrchestrator.evaluate(challenge, prompt);
+        int score;
         String feedbackJson;
+
         try {
+            // Call the Rust AI Evaluator microservice
+            Map<String, Object> requestPayload = new HashMap<>();
+            requestPayload.put("user_prompt", prompt);
+            requestPayload.put("domain", challenge.getDomain());
+            requestPayload.put("title", challenge.getTitle());
+            requestPayload.put("task", challenge.getTask());
+            requestPayload.put("difficulty", challenge.getHardness() != null ? challenge.getHardness() : "");
+            requestPayload.put("teaching_point", challenge.getTopicTaught() != null ? challenge.getTopicTaught() : challenge.getAiEvaluationGuide());
+            requestPayload.put("evaluation_guide", challenge.getAiEvaluationGuide());
+
+            JsonNode evalResponse = restClient.post()
+                    .uri(evaluatorUrl)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .body(requestPayload)
+                    .retrieve()
+                    .body(JsonNode.class);
+
+            log.info("Successfully evaluated prompt via Rust microservice at {}. Score: {}", evaluatorUrl, evalResponse.path("score").asInt());
+            score = evalResponse.path("score").asInt();
+            feedbackJson = objectMapper.writeValueAsString(evalResponse);
+        } catch (Exception ex) {
+            log.warn("Rust evaluator microservice call failed at {}. Falling back to in-process orchestrator.", evaluatorUrl, ex);
+            PromptEvaluationResponse evaluationResponse = evaluationOrchestrator.evaluate(challenge, prompt);
+            score = evaluationResponse.getFinalScore();
             feedbackJson = objectMapper.writeValueAsString(evaluationResponse);
-        } catch (Exception e) {
-            throw new RuntimeException("Failed to serialize evaluation response", e);
         }
-        int score = evaluationResponse.getFinalScore();
 
         // Save submission and update user progress
         Submission submission = new Submission();

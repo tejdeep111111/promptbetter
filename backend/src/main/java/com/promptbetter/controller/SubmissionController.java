@@ -1,7 +1,6 @@
 package com.promptbetter.controller;
 
 import com.promptbetter.dto.SubmissionRequest;
-import com.promptbetter.model.Submission;
 import com.promptbetter.model.User;
 import com.promptbetter.service.RateLimiterService;
 import com.promptbetter.service.SubmissionService;

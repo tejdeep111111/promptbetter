@@ -6,14 +6,9 @@ import com.promptbetter.model.Challenge;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.HttpEntity;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
-import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClient;
-import org.springframework.web.client.RestTemplate;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -34,13 +29,13 @@ public class PromptJudgeService {
 
     private static final Logger log = LoggerFactory.getLogger(PromptJudgeService.class);
 
-    @Value("${api.key}")
+    @Value("${api.key:}")
     private String apiKey;
 
-    @Value("${api.base-url}")
+    @Value("${api.base-url:https://api.groq.com/openai/v1/chat/completions}")
     private String apiUrl;
 
-    @Value("${ai.model}")
+    @Value("${ai.model:openai/gpt-oss-20b}")
     private String model;
 
     @Value("${app.evaluation.judge-temperature:0.1}")
@@ -85,7 +80,7 @@ public class PromptJudgeService {
             """;
 
     //whats the error
-    private RestClient restClient = RestClient.create();
+    private final RestClient restClient = RestClient.create();
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     /**
