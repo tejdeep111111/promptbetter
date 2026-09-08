@@ -12,6 +12,7 @@ import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestTemplate;
 
 import java.util.ArrayList;
@@ -83,7 +84,8 @@ public class PromptJudgeService {
              "strengths":["..."],"flaws":["..."],"improved_prompt":"...","explanation":"..."}
             """;
 
-    private final RestTemplate restTemplate = new RestTemplate();
+    //whats the error
+    private RestClient restClient = RestClient.create();
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     /**
@@ -166,15 +168,26 @@ public class PromptJudgeService {
     }
 
     private String callApi(Map<String, Object> body) throws Exception {
-        HttpHeaders headers = new HttpHeaders();
-        headers.setContentType(MediaType.APPLICATION_JSON);
-        headers.setBearerAuth(apiKey);
 
-        HttpEntity<Map<String, Object>> request = new HttpEntity<>(body, headers);
-        ResponseEntity<String> response = restTemplate.exchange(apiUrl, HttpMethod.POST, request, String.class);
+        JsonNode json = restClient.post()
+                .uri(apiUrl)
+                .contentType(MediaType.APPLICATION_JSON)
+                .header("Authorization", "Bearer " + apiKey)
+                .body(body)
+                .retrieve()
+                .body(JsonNode.class);
 
-        JsonNode root = objectMapper.readTree(response.getBody());
-        return root.path("choices").get(0).path("message").path("content").asText();
+        return json.path("choices").get(0).path("message").path("content").asText();
+//        HttpHeaders headers = new HttpHeaders();
+//        headers.setContentType(MediaType.APPLICATION_JSON); //Tells the server the payload format
+//        headers.setBearerAuth(apiKey); //Authenticates the request
+//
+//        HttpEntity<Map<String, Object>> request = new HttpEntity<>(body, headers); //Wraps the body and headers into a single object
+//
+//        ResponseEntity<String> response = restTemplate.exchange(apiUrl, HttpMethod.POST, request, String.class); //Sends the HTTP POST request and returns the response synchronously
+//
+//        JsonNode root = objectMapper.readTree(response.getBody());
+//        return root.path("choices").get(0).path("message").path("content").asText();
     }
 
     private String sanitize(String raw) {
