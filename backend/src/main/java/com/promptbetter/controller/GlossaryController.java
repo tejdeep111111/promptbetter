@@ -4,10 +4,12 @@ import com.promptbetter.model.GlossaryTerm;
 import com.promptbetter.repository.GlossaryRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.cache.annotation.Cacheable;
+import org.springframework.http.CacheControl;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 @RestController
@@ -24,7 +26,9 @@ public class GlossaryController {
     @GetMapping
 
     public ResponseEntity<?> getAllTerms() {
-       return ResponseEntity.ok(getGlossary());
+       return ResponseEntity.ok()
+                .cacheControl(CacheControl.maxAge(1, TimeUnit.HOURS).cachePublic())  //We CACHE PUBLICALLY becasuse that data doesn't change
+                .body(getGlossary());
     }
 
     @Cacheable(value = "glossary")
