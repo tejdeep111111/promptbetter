@@ -1,141 +1,124 @@
 package com.promptbetter.evaluation;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.promptbetter.model.Challenge;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * Turns a user's prompt into a meaningful, self-consistent evaluation.
+ *
+ * <p>Pipeline: the challenge-aware {@link PromptJudgeService} grades the prompt;
+ * if that is unavailable the deterministic {@link HeuristicPromptEvaluator}
+ * takes over. Either way the final 0-100 score is derived DIRECTLY from the
+ * three dimensions, so the bars the user sees always match the number. When the
+ * skill the challenge teaches is not demonstrated, the score is capped.</p>
+ */
 @Service
 public class PromptEvaluationOrchestrator {
+
     private static final Logger log = LoggerFactory.getLogger(PromptEvaluationOrchestrator.class);
 
-    private final PromptFactExtractorService factExtractorService;
-    private final TeachingPointScorer teachingPointScorer;
-    private final PromptCoachService promptCoachService;
-    private final ObjectMapper objectMapper;
+    /** Max dimension total (clarity + specificity + context). */
+    private static final int MAX_DIMENSION_TOTAL = 99;
 
-    @Value("${app.evaluation.teaching-point-weight:0.8}")
-    private double teachingPointWeight;
+    private final PromptJudgeService judgeService;
+    private final HeuristicPromptEvaluator heuristicEvaluator;
 
-    @Value("${app.evaluation.general-weight:0.2}")
-    private double generalWeight;
+    @Value("${app.evaluation.teaching-miss-cap:55}")
+    private int teachingMissCap;
 
-    @Value("${app.evaluation.hard-cap-when-missed:60}")
-    private int defaultHardCapWhenMissed;
-
-    public PromptEvaluationOrchestrator(PromptFactExtractorService factExtractorService,
-                                        TeachingPointScorer teachingPointScorer,
-                                        PromptCoachService promptCoachService,
-                                        ObjectMapper objectMapper) {
-        this.factExtractorService = factExtractorService;
-        this.teachingPointScorer = teachingPointScorer;
-        this.promptCoachService = promptCoachService;
-        this.objectMapper = objectMapper;
+    public PromptEvaluationOrchestrator(PromptJudgeService judgeService,
+                                        HeuristicPromptEvaluator heuristicEvaluator) {
+        this.judgeService = judgeService;
+        this.heuristicEvaluator = heuristicEvaluator;
     }
 
     public PromptEvaluationResponse evaluate(Challenge challenge, String userPrompt) {
-        FactSheet factSheet = factExtractorService.extractFacts(userPrompt);
-        TeachingPointRule rule = parseRule(challenge);
-        if (rule == null) {
-            rule = new TeachingPointRule();
-            rule.setTeachingPoint(challenge.getAiEvaluationGuide());
-            rule.setMustHave(List.of());
+        // An empty submission can never be a meaningful prompt.
+        if (userPrompt == null || userPrompt.isBlank()) {
+            return emptyPromptResponse(challenge);
         }
 
-        TeachingPointScorer.TeachingPointResult teachingResult = teachingPointScorer.score(rule, factSheet);
-        PromptCoachFeedback coachFeedback = promptCoachService.generateFeedback(
-                challenge.getTask(), userPrompt, factSheet, rule, teachingResult);
+        String evaluatedBy = "ai";
+        JudgeVerdict verdict = judgeService.judge(challenge, userPrompt);
+        if (verdict == null) {
+            evaluatedBy = "heuristic";
+            verdict = heuristicEvaluator.evaluate(challenge, userPrompt);
+        }
 
-        int generalScore = computeGeneralScore(coachFeedback.getDimensions());
-        int finalScore = computeFinalScore(
-                teachingResult.score(),
-                generalScore,
-                teachingResult.met(),
-                rule,
-                teachingPointWeight,
-                generalWeight,
-                defaultHardCapWhenMissed
-        );
+        int generalScore = verdict.getClarity() + verdict.getSpecificity() + verdict.getContext();
+        int finalScore = computeFinalScore(generalScore, verdict.isTeachingPointMet());
+
+        Map<String, Integer> dimensions = new LinkedHashMap<>();
+        dimensions.put("clarity", verdict.getClarity());
+        dimensions.put("specificity", verdict.getSpecificity());
+        dimensions.put("context", verdict.getContext());
 
         return PromptEvaluationResponse.builder()
                 .score(finalScore)
                 .finalScore(finalScore)
-                .teachingPoint(rule.getTeachingPoint())
-                .teachingPointScore(clamp(teachingResult.score(), 0, 100))
-                .teachingPointMet(teachingResult.met())
+                .teachingPoint(teachingPointOf(challenge))
+                .teachingPointMet(verdict.isTeachingPointMet())
                 .generalScore(generalScore)
-                .strengths(coachFeedback.getStrengths())
-                .flaws(coachFeedback.getFlaws())
-                .improvedPrompt(finalScore > 80 ? null : coachFeedback.getImprovedPrompt())
-                .explanation(coachFeedback.getExplanation())
-                .dimensions(coachFeedback.getDimensions())
-                .factSheet(factSheet)
+                .strengths(verdict.getStrengths())
+                .flaws(verdict.getFlaws())
+                .improvedPrompt(finalScore >= 90 ? null : verdict.getImprovedPrompt())
+                .explanation(verdict.getExplanation())
+                .dimensions(dimensions)
+                .evaluatedBy(evaluatedBy)
                 .build();
     }
 
-    private TeachingPointRule parseRule(Challenge challenge) {
-        try {
-            String raw = challenge.getTeachingPointRuleJson();
-            if (raw == null || raw.isBlank()) {
-                TeachingPointRule fallback = new TeachingPointRule();
-                fallback.setTeachingPoint(challenge.getAiEvaluationGuide());
-                fallback.setMustHave(List.of());
-                return fallback;
-            }
-            return objectMapper.readValue(raw, TeachingPointRule.class);
-        } catch (Exception e) {
-            log.warn("Invalid teaching_point_rule_json for challenge id={}, using fallback teaching point", challenge.getId(), e);
-            TeachingPointRule fallback = new TeachingPointRule();
-            fallback.setTeachingPoint(challenge.getAiEvaluationGuide());
-            fallback.setMustHave(List.of());
-            return fallback;
+    /**
+     * Final score is a straight, transparent function of the dimensions, so the
+     * number can never contradict the bars. A missed teaching point caps it.
+     */
+    int computeFinalScore(int dimensionTotal, boolean teachingPointMet) {
+        int clampedTotal = Math.max(0, Math.min(MAX_DIMENSION_TOTAL, dimensionTotal));
+        int scaled = (int) Math.round(clampedTotal * 100.0 / MAX_DIMENSION_TOTAL);
+        if (!teachingPointMet) {
+            scaled = Math.min(scaled, clamp(teachingMissCap, 0, 100));
         }
+        return clamp(scaled, 0, 100);
     }
 
-    public static int computeGeneralScore(Map<String, Integer> dimensions) {
-        if (dimensions == null) {
-            return 0;
-        }
-        int clarity = clamp(dimensions.getOrDefault("clarity", 0), 0, 33);
-        int specificity = clamp(dimensions.getOrDefault("specificity", 0), 0, 33);
-        int context = clamp(dimensions.getOrDefault("context", 0), 0, 33);
-        return clamp(clarity + specificity + context, 0, 100);
+    private PromptEvaluationResponse emptyPromptResponse(Challenge challenge) {
+        Map<String, Integer> dimensions = new LinkedHashMap<>();
+        dimensions.put("clarity", 0);
+        dimensions.put("specificity", 0);
+        dimensions.put("context", 0);
+        return PromptEvaluationResponse.builder()
+                .score(0)
+                .finalScore(0)
+                .teachingPoint(teachingPointOf(challenge))
+                .teachingPointMet(false)
+                .generalScore(0)
+                .strengths(List.of())
+                .flaws(List.of("No prompt was submitted."))
+                .improvedPrompt(null)
+                .explanation("Write a prompt describing what you want the AI to do for this challenge.")
+                .dimensions(dimensions)
+                .evaluatedBy("system")
+                .build();
     }
 
-    public static int computeFinalScore(int teachingPointScore,
-                                        int generalScore,
-                                        boolean teachingPointMet,
-                                        TeachingPointRule rule,
-                                        double teachingPointWeight,
-                                        double generalWeight,
-                                        int defaultHardCapWhenMissed) {
-        int clampedTeaching = clamp(teachingPointScore, 0, 100);
-        int clampedGeneral = clamp(generalScore, 0, 100);
-
-        double weighted = (teachingPointWeight * clampedTeaching) + (generalWeight * clampedGeneral);
-        int finalScore = clamp((int) Math.round(weighted), 0, 100);
-
-        boolean hardCapEnabled = rule == null
-                || rule.getApplyHardCapWhenMissed() == null
-                || rule.getApplyHardCapWhenMissed();
-
-        if (!teachingPointMet && hardCapEnabled) {
-            int cap = defaultHardCapWhenMissed;
-            if (rule != null && rule.getHardCapWhenMissed() != null) {
-                cap = clamp(rule.getHardCapWhenMissed(), 0, 100);
-            }
-            finalScore = Math.min(finalScore, cap);
+    private String teachingPointOf(Challenge challenge) {
+        if (challenge == null) {
+            return null;
         }
-
-        return clamp(finalScore, 0, 100);
+        if (challenge.getTopicTaught() != null && !challenge.getTopicTaught().isBlank()) {
+            return challenge.getTopicTaught();
+        }
+        return challenge.getAiEvaluationGuide();
     }
 
-    private static int clamp(int value, int min, int max) {
+    private int clamp(int value, int min, int max) {
         return Math.max(min, Math.min(max, value));
     }
 }
